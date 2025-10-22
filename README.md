@@ -4,11 +4,12 @@
 
 Build an MCP server
 
-- Install Python 3.10+.
+- Install Python 3.10+ and install relevant python packages `pip3 install mcp httpx`
 - Install uv by running: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - Download the dafoam_mcp_server and cd into a subfolder, e.g., airfoils
 - Run the following commands to initialize some environments:
   <pre>
+  uv init .
   uv venv
   source .venv/bin/activate
   uv add "mcp[cli]" httpx
@@ -19,13 +20,13 @@ Connect the MCP server to a client (Claude)
 
 Open Claude's configuration file using VSCode:  `code ~/Library/Application\ Support/Claude/claude_desktop_config.json`
 
-Add these into the .json file
+Add these into the .json file. Here `absolute_path_to_dafoam_mcp_server` is the absolute path of the dafoam_mcp_server repo and `/Users/phe/.local/bin/uv` is the absolute path of the uv command (you can get it from `which uv`). Claude may not have access to your system's PATH variable, so we may need to use the absolute paths.
 
 <pre>
 {
   "mcpServers": {
     "airfoil_mcp": {
-      "command": "uv",
+      "command": "/Users/phe/.local/bin/uv",
       "args": [
         "--directory",
         "/absolute_path_to_dafoam_mcp_server/airfoils",
@@ -36,3 +37,5 @@ Add these into the .json file
   }
 }
 </pre>
+
+You need to re-open Claude to make the new MCP effective.
