@@ -13,26 +13,27 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-airfoil_profile", help="name of the airfoil profile", type=str, default="naca0012")
 parser.add_argument("-mesh_cells", help="number of mesh cells", type=int, default=50000)
 parser.add_argument("-y_plus", help="yPlus, the normalized near wall mesh size", type=float, default=3.0)
-parser.add_argument("-mach", help="Mach number", type=float, default=0.1)
 parser.add_argument("-n_ffds", help="The number of FFD control points", type=int, default=10)
 args = parser.parse_args()
 
 
 # users need to prescribe the airfoil profile name (no spaces)
 airfoil_profile = args.airfoil_profile
-n_surf_points = int(np.sqrt(args.mesh_cells) * 1.7)
-n_extrude = int(np.sqrt(args.mesh_cells) / 1.7)
+# the ratio between the surface points and extruded points
+mesh_ratio = 1.8
+n_surf_points = int(np.sqrt(args.mesh_cells) * mesh_ratio)
+n_extrude = int(np.sqrt(args.mesh_cells) / mesh_ratio)
 n_ffd_points = args.n_ffds
 distribution_coeff = 1.0
+# estimate the trailing mesh points
 n_trailing_points = int(args.mesh_cells / 10000 + 1)
-# estimate y0_wall based on Mach number and yPlus
-y0_wall = args.y_plus * args.mach * 1e-4
+# estimate y0_wall based on yPlus
+y0_wall = args.y_plus * 5e-6
 
 """
 Here we read an airfoil coordinate file from a database, perform geometric
 cleanup, and then sample it with a particular distribution.
 """
-# rst PLOT start
 # Read the Coordinate file
 filename = "./profiles/" + airfoil_profile.lower() + ".dat"
 coords = readCoordFile(filename)
@@ -40,22 +41,14 @@ airfoil = Airfoil(coords)
 coords = airfoil.getSampledPts(
     n_surf_points, spacingFunc=sampling.conical, nTEPts=n_trailing_points, func_args={"coeff": distribution_coeff}
 )
-# ---------------------------------------------
-"""
-Here we write out the previous sampling to a plot3d surface mesh that pyhyp
-can use and generate an FFD. This sets us up to use the rest of the mach-aero
-framework to run an optimization.
-"""
 
-# rst OPTSETUP start
 # Write surface mesh
 airfoil.writeCoords("surfMesh", file_format="plot3d")
 
-# Write a fitted FFD with 10 chordwise points
+# Write a fitted FFD with n_ffd_points chordwise points
 airfoil.generateFFD(n_ffd_points, "FFD", xmargin=0.025, ymarginu=0.05, ymarginl=0.05)
-# rst OPTSETUP end
 
-
+# extrude volume mesh
 options = {
     # ---------------------------
     #        Input Parameters

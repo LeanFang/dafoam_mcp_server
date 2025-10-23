@@ -47,7 +47,7 @@ def display_image(image_path: str):
 
 @mcp.tool()
 async def generate_mesh(
-    working_dir: str, airfoil_profile: str, mesh_cells: int, y_plus: float, mach: float, n_ffds: int
+    working_dir: str, airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffds: int
 ):
     """
     Generate the airfoil mesh and output the mesh image called airfoil_mesh.png
@@ -57,7 +57,6 @@ async def generate_mesh(
         airfoil_profile: The name of the airfoil profile, such as rae2822 or naca0012 (no spaces and all lower case letters). Default: naca0012
         mesh_cells: The number of mesh cells to generate. Default: 5000
         y_plus: the normalized near wall mesh size to capture boundary layer. Default: 50
-        mach: Mach number to estimate the near wall mesh size value. Default: 0.1
         n_ffds: the Number of FFD control points to change the airfoil geometry. Default: 10
     """
     os.chdir(working_dir)
@@ -74,8 +73,8 @@ async def generate_mesh(
         "dafoam/opt-packages:claude",
         "bash",
         "-lc",
-        '. /home/dafoamuser/dafoam/loadDAFoam.sh && python generate_mesh.py -airfoil_profile=%s -mesh_cells=%i -y_plus=%f -mach=%f -n_ffds=%i && plot3dToFoam -noBlank volumeMesh.xyz && autoPatch 30 -overwrite && createPatch -overwrite  && renumberMesh -overwrite && transformPoints -scale "(1 1 0.01)" && dafoam_plot3d2tecplot.py FFD.xyz FFD.dat && sed -i "/Zone T=\\"embedding_vol\\"/,\$d" FFD.dat && pvpython plot_mesh.py'
-        % (airfoil_profile, mesh_cells, y_plus, mach, n_ffds),
+        '. /home/dafoamuser/dafoam/loadDAFoam.sh && python generate_mesh.py -airfoil_profile=%s -mesh_cells=%i -y_plus=%f -n_ffds=%i && plot3dToFoam -noBlank volumeMesh.xyz && autoPatch 30 -overwrite && createPatch -overwrite  && renumberMesh -overwrite && transformPoints -scale "(1 1 0.01)" && dafoam_plot3d2tecplot.py FFD.xyz FFD.dat && sed -i "/Zone T=\\"embedding_vol\\"/,\$d" FFD.dat && pvpython plot_mesh.py'
+        % (airfoil_profile, mesh_cells, y_plus, n_ffds),
     ]
     subprocess.run(cmd, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
