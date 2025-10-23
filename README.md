@@ -40,4 +40,15 @@ Add these into the .json file. Here `absolute_path_to_dafoam_mcp_server` is the 
 
 You need to re-open Claude to make the new MCP effective.
 
+
+## Windows 11
+
+Build an MCP server
+
+- Open a terminal with Python environment, say, Anaconda PowerShell Prompt in Windows Terminal. Make sure your Python version is at least 3.10+. You can check by `python --version`. This is usually already satisfied. If you have uv installed, you can check your python version by `uv python list`, and you can install Python by `uv python install`
+- Make sure your Python SDK is at least 1.2.0. You can install Python SDK by `pip install mcp`. If you have uv already, you can `uv add "mcp[cli]"`
+- If you haven't installed uv already, open a Command Prompt, and install uv by `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+
+[WiP]
+
 The logs file are in ~/Library/Logs/Claude
