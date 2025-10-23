@@ -74,7 +74,7 @@ async def generate_mesh(
         "dafoam/opt-packages:claude",
         "bash",
         "-lc",
-        '. /home/dafoamuser/dafoam/loadDAFoam.sh && python generate_mesh.py -airfoil_profile=%s -mesh_cells=%i -y_plus=%f -mach=%f -n_ffds=%i && plot3dToFoam -noBlank volumeMesh.xyz && autoPatch 30 -overwrite && createPatch -overwrite  && renumberMesh -overwrite && transformPoints -scale "(1 1 0.01)" && pvpython plot_mesh.py'
+        '. /home/dafoamuser/dafoam/loadDAFoam.sh && python generate_mesh.py -airfoil_profile=%s -mesh_cells=%i -y_plus=%f -mach=%f -n_ffds=%i && plot3dToFoam -noBlank volumeMesh.xyz && autoPatch 30 -overwrite && createPatch -overwrite  && renumberMesh -overwrite && transformPoints -scale "(1 1 0.01)" && dafoam_plot3d2tecplot.py FFD.xyz FFD.dat && sed -i "/Zone T=\\"embedding_vol\\"/,\$d" FFD.dat && pvpython plot_mesh.py'
         % (airfoil_profile, mesh_cells, y_plus, mach, n_ffds),
     ]
     subprocess.run(cmd, check=False)
