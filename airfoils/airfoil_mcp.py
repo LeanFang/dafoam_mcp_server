@@ -79,7 +79,7 @@ async def generate_mesh(
     ]
     subprocess.run(cmd, check=False)
 
-    image_path = working_dir + "/airfoil_mesh.png"
+    image_path = working_dir + "/airfoil_mesh.jpeg"
 
     return display_image(image_path)
 

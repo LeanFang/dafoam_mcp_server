@@ -50,13 +50,13 @@ layout1 = GetLayout()
 layout1.SetSize(1925, 1158)
 
 # current camera placement for renderView1
-renderView1.CameraPosition = [0.49633877854037517, -0.004894815644598465, 139.52758892367015]
-renderView1.CameraFocalPoint = [0.49633877854037517, -0.004894815644598465, 0.004999999888241291]
-renderView1.CameraParallelScale = 0.372213284451689
+renderView1.CameraPosition = [0.5123891830444336, -0.0026445388793945312, 1.5313394223807257]
+renderView1.CameraFocalPoint = [0.5123891830444336, -0.0026445388793945312, 0.004999999888241291]
+renderView1.CameraParallelScale = 0.3950457118318379
 renderView1.CameraParallelProjection = 1
 
 # save screenshot
-SaveScreenshot(working_dir + "/airfoil_mesh.png", renderView1, ImageResolution=[1200, 800])
+SaveScreenshot(working_dir + "/airfoil_mesh.jpeg", renderView1, ImageResolution=[600, 360])
 
 # ================================================================
 # addendum: following script captures some of the application
