@@ -39,3 +39,5 @@ Add these into the .json file. Here `absolute_path_to_dafoam_mcp_server` is the 
 </pre>
 
 You need to re-open Claude to make the new MCP effective.
+
+The logs file are in ~/Library/Logs/Claude
