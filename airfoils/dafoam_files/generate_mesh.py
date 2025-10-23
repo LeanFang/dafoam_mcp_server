@@ -52,7 +52,7 @@ framework to run an optimization.
 airfoil.writeCoords("surfMesh", file_format="plot3d")
 
 # Write a fitted FFD with 10 chordwise points
-airfoil.generateFFD(n_ffd_points, "FFD", xmargin=0.05, ymarginu=0.05, ymarginl=0.05)
+airfoil.generateFFD(n_ffd_points, "FFD", xmargin=0.025, ymarginu=0.05, ymarginl=0.05)
 # rst OPTSETUP end
 
 
