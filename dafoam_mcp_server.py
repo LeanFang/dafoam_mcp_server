@@ -47,7 +47,36 @@ def display_image(image_path: str):
 
 
 @mcp.tool()
-async def airfoil_generate_mesh(airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffds: int):
+async def airfoil_view_mesh_details(x_location: float, zoom_in_scale: float):
+    """
+    Airfoil module: Allow users to view detail airfoil meshes. The mesh must have been generated in airfoils
+
+    Args:
+        x_location: where to zoom in to view the airfoil mesh details. Leading edge means x_location=0, mid chord means x_location=0.5, and trailing edge means x_location=1. We need to adjust x_location based on users' description. Default: 0.5
+        zoom_in_scale: how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more. Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
+    """
+
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd /home/dafoamuser/mount/airfoils && "
+        f"pvpython plot_mesh.py -x_location={x_location} -zoom_in_scale={zoom_in_scale}"
+    )
+
+    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
+
+    # Read and display the generated image
+    image_path = "/home/dafoamuser/mount/airfoils/airfoil_mesh.jpeg"
+
+    if not os.path.exists(image_path):
+        return TextContent(
+            type="text",
+            text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
+        )
+
+    return display_image(image_path)
+
+@mcp.tool()
+async def airfoil_generate_mesh(airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffds: int, mach_ref: float):
     """
     Airfoil module: Generate the airfoil mesh and output the mesh image called airfoil_mesh.jpeg
 
@@ -56,12 +85,13 @@ async def airfoil_generate_mesh(airfoil_profile: str, mesh_cells: int, y_plus: f
         mesh_cells: The number of mesh cells to generate. Default: 5000
         y_plus: the normalized near wall mesh size to capture boundary layer. Default: 50
         n_ffds: the Number of FFD control points to change the airfoil geometry. Default: 10
+        mach_ref: the reference Mach number to estimate the near wall mesh size. Default: 0.1
     """
     # Run DAFoam commands directly in this container with mpirun
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd /home/dafoamuser/mount/airfoils && "
-        f"python generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffds={n_ffds} && "
+        f"python generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffds={n_ffds} -mach_ref={mach_ref} && "
         f"plot3dToFoam -noBlank volumeMesh.xyz && "
         f"autoPatch 30 -overwrite && "
         f"createPatch -overwrite && "
