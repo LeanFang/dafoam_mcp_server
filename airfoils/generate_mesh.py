@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-airfoil_profile", help="name of the airfoil profile", type=str, default="naca0012")
 parser.add_argument("-mesh_cells", help="number of mesh cells", type=int, default=50000)
 parser.add_argument("-y_plus", help="yPlus, the normalized near wall mesh size", type=float, default=3.0)
-parser.add_argument("-n_ffds", help="The number of FFD control points", type=int, default=10)
+parser.add_argument("-n_ffd_points", help="The number of FFD control points", type=int, default=10)
 parser.add_argument(
     "-mach_ref", help="The reference Mach number to estimate the near wall mesh size", type=float, default=0.1
 )
@@ -26,7 +26,7 @@ airfoil_profile = args.airfoil_profile
 mesh_ratio = 1.8
 n_surf_points = int(np.sqrt(args.mesh_cells) * mesh_ratio)
 n_extrude = int(np.sqrt(args.mesh_cells) / mesh_ratio)
-n_ffd_points = args.n_ffds
+n_ffd_points = args.n_ffd_points
 distribution_coeff = 1.0
 # estimate the trailing mesh points
 n_trailing_points = int(args.mesh_cells / 10000 + 1)
