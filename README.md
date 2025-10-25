@@ -49,8 +49,19 @@ Build an MCP server
 
 - Install uv for Python. Open any terminal such as a Command Prompt, and run `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"` Restart the terminal so that uv command can be used
 - Make sure your Python is at least 3.10+. You can check your Python version using uv by `uv python list`, and install by `uv python install` If you are using a Anaconda PowerShell Prompt, you can check by `python --version`, and this requirement is usually already satisfied
-- Download the dafoam_mcp_server and cd into a subfolder, e.g., airfoils
-- 
+- Download the dafoam_mcp_server and cd into the subfolder airfoils
+- Run the following commands to initialize some environments:
+  <pre>
+  uv init .
+  uv venv
+  .venv\Scripts\activate
+  uv add mcp[cli] httpx
+  </pre> 
+- Start the server by running: `uv run airfoil_mcp.py`
+- Do not close this terminal as it would close the MCP server
+
+Connect the MCP server to a client (Claude)
+
 [WiP]
 
 - Open a terminal with Python environment, say, Anaconda PowerShell Prompt in Windows Terminal. Make sure your Python version is at least 3.10+. You can check by `python --version`. This is usually already satisfied. If you have uv installed, you can check your python version by `uv python list`, and you can install Python by `uv python install`
