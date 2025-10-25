@@ -46,53 +46,43 @@ def display_image(image_path: str):
 
 
 @mcp.tool()
-async def generate_mesh(
-    working_dir: str, airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffds: int
-):
+async def generate_mesh(airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffds: int):
     """
-    Generate the airfoil mesh and output the mesh image called airfoil_mesh.png
+    Generate the airfoil mesh and output the mesh image called airfoil_mesh.jpeg
 
     Args:
-        working_dir: !mandatory! Users need to provide the absolute path for the working directory. If not, ask users to set it.
         airfoil_profile: The name of the airfoil profile, such as rae2822 or naca0012 (no spaces and all lower case letters). Default: naca0012
         mesh_cells: The number of mesh cells to generate. Default: 5000
         y_plus: the normalized near wall mesh size to capture boundary layer. Default: 50
         n_ffds: the Number of FFD control points to change the airfoil geometry. Default: 10
     """
-    os.chdir(working_dir)
-    cmd = [
-        "docker",
-        "run",
-        "--rm",
-        "-u",
-        "dafoamuser",
-        "-v",
-        f"{os.getcwd()}:/home/dafoamuser/mount",
-        "-w",
-        "/home/dafoamuser/mount",
-        "dafoam/opt-packages:claude",
-        "bash",
-        "-lc",
-        '. /home/dafoamuser/dafoam/loadDAFoam.sh && python generate_mesh.py -airfoil_profile=%s -mesh_cells=%i -y_plus=%f -n_ffds=%i && plot3dToFoam -noBlank volumeMesh.xyz && autoPatch 30 -overwrite && createPatch -overwrite  && renumberMesh -overwrite && transformPoints -scale "(1 1 0.01)" && dafoam_plot3d2tecplot.py FFD.xyz FFD.dat && sed -i "/Zone T=\\"embedding_vol\\"/,\$d" FFD.dat && pvpython plot_mesh.py'
-        % (airfoil_profile, mesh_cells, y_plus, n_ffds),
-    ]
-    subprocess.run(cmd, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # Run DAFoam commands directly in this container with mpirun
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd /home/dafoamuser/mount && "
+        f"python generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffds={n_ffds} && "
+        f"plot3dToFoam -noBlank volumeMesh.xyz && "
+        f"autoPatch 30 -overwrite && "
+        f"createPatch -overwrite && "
+        f"renumberMesh -overwrite && "
+        f'transformPoints -scale "(1 1 0.01)" && '
+        f"dafoam_plot3d2tecplot.py FFD.xyz FFD.dat && "
+        f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD.dat && '
+        f"pvpython plot_mesh.py"
+    )
 
-    image_path = working_dir + "/airfoil_mesh.jpeg"
+    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
+
+    # Read and display the generated image
+    image_path = "/home/dafoamuser/mount/airfoil_mesh.jpeg"
+
+    if not os.path.exists(image_path):
+        return TextContent(
+            type="text",
+            text=f"Mesh generation completed but image not found.\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
+        )
 
     return display_image(image_path)
-
-
-@mcp.tool()
-async def download_dafoam_tutorials(working_dir: str):
-    """
-    Download the DAFoam tutorial. We need to force Users to set the working_dir. If not, ask users to set it.
-
-    Args:
-        working_dir: Users need to provide the absolute path for the working directory, where we will download the tutorial files from github
-    """
-    os.chdir(working_dir)
-    os.system("wget https://github.com/DAFoam/tutorials/archive/refs/heads/main.tar.gz")
 
 
 if __name__ == "__main__":
