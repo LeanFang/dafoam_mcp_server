@@ -4,28 +4,38 @@
 
 Build an MCP server (airfoils)
 
-- Download the Docker Desktop from https://docs.docker.com/desktop/setup/install/mac-install
-- Open a terminal and download the DAFoam Docker image `docker pull dafoam/opt-packages:latest`
-- Download the dafoam_mcp_server repo.
-- Open a terminal and and cd into dafoam_mcp_server/airfoils, then run `docker build -t airfoil_mcp .` to build the mcp docker image
+- Download and install the Docker Desktop from https://docs.docker.com/desktop/setup/install/mac-install. Open Docker Desktop and keep it open.
+- Open a terminal and download the DAFoam Docker image:
+  <pre>
+  docker pull dafoam/opt-packages:latest
+  </pre>
+- Download the dafoam_mcp_server repo
+  <pre>
+  git clone https://github.com/iDesign-Lab/dafoam_mcp_server.git
+  
+- Open a terminal and and cd into dafoam_mcp_server/airfoils, then run the following to build the dafoam_mcp_server docker image
+  <pre>
+ docker build -t dafoam_mcp_server . 
+  </pre>
 
-Connect the MCP server to a client (Claude).
+Connect the DAFoam MCP server to a client (Claude).
 
-- First open Claude's configuration file using VSCode:  `code ~/Library/Application\ Support/Claude/claude_desktop_config.json`. 
-- Add these into the .json file. Here `abs_path_to_your_dafoam_mcp_server` is the absolute path of the dafoam_mcp_server repo on your local MacOS system, e.g., `/Users/phe/Desktop/dafoam_mcp_server`
+- Download and install Claude app from https://www.claude.com/download. Open the Claude app (you may need to sign up for an account).
+- In Claude's app, locate to the bottom left and click: "Your Account->Settings->Developer". Then, click "Edit Config", this will open a directory where Claude saves your claude_desktop_config.json file. 
+- Open claude_desktop_config.json and add these into it. Here `abs_path_to_your_dafoam_mcp_server` is the absolute path of the dafoam_mcp_server repo on your local MacOS system, e.g., `/Users/phe/Desktop/dafoam_mcp_server`. NOTE: the DAFoam MCP will make modifications ONLY in this dafoam_mcp_server folder.
 
   <pre>
   {
     "mcpServers": {
-      "airfoil_mcp": {
+      "dafoam_mcp_server": {
         "command": "docker",
         "args": [
           "run", 
           "-i", 
           "--rm",
           "-v", 
-          "/abs_path_to_your_dafoam_mcp_server/airfoils:/home/dafoamuser/mount",
-          "airfoil_mcp"
+          "/abs_path_to_your_dafoam_mcp_server:/home/dafoamuser/mount",
+          "dafoam_mcp_server"
         ]
       }
     }
@@ -36,7 +46,7 @@ Connect the MCP server to a client (Claude).
 
 - You can ask questions such as "Generate a mesh for the NACA0012 airfoil". Once Claude generates the mesh, you can view it by expanding the "Generate Mesh" tab in the chat window. 
 
-NOTE: If you see an error, the logs file are in ~/Library/Logs/Claude/mcp-server-airfoil_mcp.log 
+NOTE: If you see an error, the logs file are in ~/Library/Logs/Claude/mcp-server-dafoam_mcp_server.log 
 
 
 ## Windows 11

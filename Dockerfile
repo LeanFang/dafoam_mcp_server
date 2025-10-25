@@ -1,5 +1,5 @@
 FROM dafoam/opt-packages:latest
 USER dafoamuser
 WORKDIR /home/dafoamuser/dafoam
-COPY airfoil_mcp.py .
-CMD ["/home/dafoamuser/dafoam/packages/miniconda3/bin/python", "-u", "airfoil_mcp.py"]
+COPY dafoam_mcp_server.py .
+CMD ["/home/dafoamuser/dafoam/packages/miniconda3/bin/python", "-u", "dafoam_mcp_server.py"]

@@ -8,9 +8,10 @@ from mcp.types import ImageContent, TextContent
 import subprocess
 
 # Initialize FastMCP server
-mcp = FastMCP("airfoil_mcp")
+mcp = FastMCP("dafoam_mcp_server")
 
 
+# helper functions
 def display_image(image_path: str):
     """
     Display an image from the filesystem
@@ -46,9 +47,9 @@ def display_image(image_path: str):
 
 
 @mcp.tool()
-async def generate_mesh(airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffds: int):
+async def airfoil_generate_mesh(airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffds: int):
     """
-    Generate the airfoil mesh and output the mesh image called airfoil_mesh.jpeg
+    Airfoil module: Generate the airfoil mesh and output the mesh image called airfoil_mesh.jpeg
 
     Args:
         airfoil_profile: The name of the airfoil profile, such as rae2822 or naca0012 (no spaces and all lower case letters). Default: naca0012
@@ -59,7 +60,7 @@ async def generate_mesh(airfoil_profile: str, mesh_cells: int, y_plus: float, n_
     # Run DAFoam commands directly in this container with mpirun
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
-        f"cd /home/dafoamuser/mount && "
+        f"cd /home/dafoamuser/mount/airfoils && "
         f"python generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffds={n_ffds} && "
         f"plot3dToFoam -noBlank volumeMesh.xyz && "
         f"autoPatch 30 -overwrite && "
@@ -74,7 +75,7 @@ async def generate_mesh(airfoil_profile: str, mesh_cells: int, y_plus: float, n_
     result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
     # Read and display the generated image
-    image_path = "/home/dafoamuser/mount/airfoil_mesh.jpeg"
+    image_path = "/home/dafoamuser/mount/airfoils/airfoil_mesh.jpeg"
 
     if not os.path.exists(image_path):
         return TextContent(
