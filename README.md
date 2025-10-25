@@ -1,46 +1,42 @@
 # dafoam_mcp_server
 
-## MacOS/Linux
+## MacOS
 
-Build an MCP server
+Build an MCP server (airfoils)
 
-- Install Python 3.10+ and install relevant python packages `pip3 install mcp httpx`
-- Install uv by running: `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- Download the dafoam_mcp_server and cd into a subfolder, e.g., airfoils
-- Run the following commands to initialize some environments:
+- Download the Docker Desktop from https://docs.docker.com/desktop/setup/install/mac-install
+- Open a terminal and download the DAFoam Docker image `docker pull dafoam/opt-packages:latest`
+- Download the dafoam_mcp_server repo.
+- Open a terminal and and cd into dafoam_mcp_server/airfoils, then run `docker build -t airfoil_mcp .` to build the mcp docker image
+
+Connect the MCP server to a client (Claude).
+
+- First open Claude's configuration file using VSCode:  `code ~/Library/Application\ Support/Claude/claude_desktop_config.json`. 
+- Add these into the .json file. Here `abs_path_to_your_dafoam_mcp_server` is the absolute path of the dafoam_mcp_server repo on your local MacOS system, e.g., `/Users/phe/Desktop/dafoam_mcp_server`
+
   <pre>
-  uv init .
-  uv venv
-  source .venv/bin/activate
-  uv add "mcp[cli]" httpx
-  </pre> 
-- Start the server by running: `uv run airfoil_mcp.py`
-
-Connect the MCP server to a client (Claude)
-
-Open Claude's configuration file using VSCode:  `code ~/Library/Application\ Support/Claude/claude_desktop_config.json`
-
-Add these into the .json file. Here `absolute_path_to_dafoam_mcp_server` is the absolute path of the dafoam_mcp_server repo and `/Users/phe/.local/bin/uv` is the absolute path of the uv command (you can get it from `which uv`). Claude may not have access to your system's PATH variable, so we may need to use the absolute paths.
-
-<pre>
-{
-  "mcpServers": {
-    "airfoil_mcp": {
-      "command": "/Users/phe/.local/bin/uv",
-      "args": [
-        "--directory",
-        "/absolute_path_to_dafoam_mcp_server/airfoils",
-        "run",
-        "airfoil_mcp.py"
-      ]
+  {
+    "mcpServers": {
+      "airfoil_mcp": {
+        "command": "docker",
+        "args": [
+          "run", 
+          "-i", 
+          "--rm",
+          "-v", 
+          "/abs_path_to_your_dafoam_mcp_server/airfoils:/home/dafoamuser/mount",
+          "airfoil_mcp"
+        ]
+      }
     }
   }
-}
-</pre>
+  </pre>
 
-You need to re-open Claude to make the new MCP effective.
+- You need to re-open Claude to make the new MCP effective.
 
-The logs file are in ~/Library/Logs/Claude
+- You can ask questions such as "Generate a mesh for the NACA0012 airfoil". Once Claude generates the mesh, you can view it by expanding the "Generate Mesh" tab in the chat window. 
+
+NOTE: If you see an error, the logs file are in ~/Library/Logs/Claude/mcp-server-airfoil_mcp.log 
 
 
 ## Windows 11
