@@ -62,12 +62,29 @@ Build an MCP server
 
 Connect the MCP server to a client (Claude)
 
-[WiP]
+Open Claude's configuration file using VSCode (run in any terminal):  `code $env:AppData\Claude\claude_desktop_config.json`
 
-- Open a terminal with Python environment, say, Anaconda PowerShell Prompt in Windows Terminal. Make sure your Python version is at least 3.10+. You can check by `python --version`. This is usually already satisfied. If you have uv installed, you can check your python version by `uv python list`, and you can install Python by `uv python install`
-- Make sure your Python SDK is at least 1.2.0. You can install Python SDK by `pip install mcp`. If you have uv already, you can `uv add "mcp[cli]"`
-- If you haven't installed uv already, open a Command Prompt, and install uv by `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+Add these into the .json file. Here `absolute_path_to_dafoam_mcp_server` is the absolute path of the dafoam_mcp_server repo and `C:\\Users\\your_user_name\\.local\\bin\\uv.exe` is the absolute path of the uv command (you can get it from `where uv` in a Command Prompt). Claude may not have access to your system's PATH variable, so we may need to use the absolute paths. Remember to use double backslashes `\\` in the JSON path for Windows 
 
+<pre>
+{
+  "mcpServers": {
+    "airfoil_mcp": {
+      "command": "C:\\Users\\your_user_name\\.local\\bin\\uv.exe",
+      "args": [
+        "--directory",
+        "C:\\absolute_path_to_dafoam_mcp_server\\airfoils",
+        "run",
+        "airfoil_mcp.py"
+      ]
+    }
+  }
+}
+</pre>
+
+You need to re-open Claude to make the new MCP effective.
+
+The logs file are in %APPDATA%\Claude\logs
 
 
 [WiP]
