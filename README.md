@@ -42,7 +42,7 @@ Connect the DAFoam MCP server to a client (Claude).
   }
   </pre>
 
-- You need to re-open Claude to make the new MCP effective.
+- IMPORTANT! You need to close and re-open the Claude app to make the new MCP effective.
 
 - You can ask questions such as "Generate a mesh for the NACA0012 airfoil". Once Claude generates the mesh, you can view it by expanding the "Generate Mesh" tab in the chat window. 
 
