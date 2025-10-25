@@ -15,7 +15,7 @@ Build an MCP server (airfoils)
   
 - Open a terminal and and cd into dafoam_mcp_server/airfoils, then run the following to build the dafoam_mcp_server docker image
   <pre>
- docker build -t dafoam_mcp_server . 
+  docker build -t dafoam_mcp_server . 
   </pre>
 
 Connect the DAFoam MCP server to a client (Claude).
