@@ -12,6 +12,7 @@ Build an MCP server (airfoils)
 - Download the dafoam_mcp_server repo
   <pre>
   git clone https://github.com/iDesign-Lab/dafoam_mcp_server.git
+  </pre>
   
 - Open a terminal and and cd into dafoam_mcp_server/airfoils, then run the following to build the dafoam_mcp_server docker image
   <pre>
