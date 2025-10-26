@@ -39,6 +39,9 @@ renderView1.Background = [1.0, 1.0, 1.0]
 # change representation type
 paraviewfoamDisplay.SetRepresentationType("Surface With Edges")
 
+# turn off scalar coloring
+ColorBy(paraviewfoamDisplay, None)
+
 fFDdat = TecplotReader(registrationName="FFD.dat", FileNames=["./FFD.dat"])
 
 # show data in view

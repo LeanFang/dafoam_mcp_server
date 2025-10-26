@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-x_location", help="the camera x_location in the x direction", type=float, default=0.5)
 parser.add_argument("-y_location", help="the camera y_location in the y direction", type=float, default=0.0)
 parser.add_argument("-zoom_in_scale", help="zoom in level", type=float, default=0.5)
+parser.add_argument("-variable", help="flow field variable to plot", type=str, default="p")
 args = parser.parse_args()
 
 # create a new 'OpenFOAMReader'
@@ -43,7 +44,7 @@ renderView1.CameraParallelScale = args.zoom_in_scale
 renderView1.Background = [1.0, 1.0, 1.0]
 
 # set scalar coloring
-ColorBy(paraviewfoamDisplay, ('POINTS', 'p'))
+ColorBy(paraviewfoamDisplay, ('POINTS', args.variable))
 
 # save screenshot
-SaveScreenshot("./flow_field.jpeg", renderView1, ImageResolution=[600, 360])
+SaveScreenshot("./flow_field.jpeg", renderView1, ImageResolution=[800, 600])

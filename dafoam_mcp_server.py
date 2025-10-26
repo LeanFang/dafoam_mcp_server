@@ -60,26 +60,52 @@ async def airfoil_run_cfd_simulation(cpu_cores: int, angle_of_attack: float):
     base_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd /home/dafoamuser/mount/airfoils && "
-        f"mpirun -np {cpu_cores} python run_script.py -task=run_model -angle_of_attack={angle_of_attack}"
+        f"mpirun -np {cpu_cores} python run_script.py -task=run_model -angle_of_attack={angle_of_attack} > log-cfd-simulation.txt"
     )
 
     # Add reconstructPar and cleanup only if parallel (cpu_cores > 1)
     if cpu_cores > 1:
-        bash_command = f"{base_command} && reconstructPar && rm -rf processor* && pvpython plot_flow_field.py"
+        bash_command = f"{base_command} && reconstructPar && rm -rf processor* && pvpython plot_flow_field.py && pvpython plot_pressure_profile.py"
     else:
-        bash_command = f"{base_command} && pvpython plot_flow_field.py"
+        bash_command = f"{base_command} && pvpython plot_flow_field.py && pvpython plot_pressure_profile.py"
 
     result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
-    # Write output to disk
-    with open("/home/dafoamuser/mount/airfoils/cfd_simulation_log.txt", "w") as f:
-        f.write(result.stdout)
+    # Read and display the generated image
+    image_path1 = "/home/dafoamuser/mount/airfoils/flow_field.jpeg"
+    image_path2 = "/home/dafoamuser/mount/airfoils/pressure_profile.jpeg"
 
-    with open("/home/dafoamuser/mount/airfoils/cfd_simulation_error.txt", "w") as f:
-        f.write(result.stderr)
+    return [display_image(image_path1), display_image(image_path2)]
+
+
+@mcp.tool()
+async def airfoil_view_flow_field_details(x_location: float, y_location: float, zoom_in_scale: float, variable: str):
+    """
+    Airfoil module: Allow users to view the details of a selected flow field variable. The airfoil CFD simulation must have been done.
+
+    Args:
+        x_location: where to zoom in to view the airfoil mesh details in the x direction. Leading edge: x_location=0, mid chord: x_location=0.5, and trailing edge: x_location=1. Default: 0.5
+        y_location: where to zoom in to view the airfoil mesh details in the y direction. Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
+        zoom_in_scale: how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more. Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
+        variable: which flow field variable to visualize. Options are "U": velocity, "T": temperature, "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
+    """
+
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd /home/dafoamuser/mount/airfoils && "
+        f"pvpython plot_flow_field.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale} -variable={variable}"
+    )
+
+    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
     # Read and display the generated image
     image_path = "/home/dafoamuser/mount/airfoils/flow_field.jpeg"
+
+    if not os.path.exists(image_path):
+        return TextContent(
+            type="text",
+            text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
+        )
 
     return display_image(image_path)
 
@@ -134,27 +160,20 @@ async def airfoil_generate_mesh(
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd /home/dafoamuser/mount/airfoils && "
         f"./Allclean.sh && "
-        f"python generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffd_points={n_ffd_points} -mach_ref={mach_ref} && "
-        f"plot3dToFoam -noBlank volumeMesh.xyz && "
-        f"autoPatch 30 -overwrite && "
-        f"createPatch -overwrite && "
-        f"renumberMesh -overwrite && "
+        f"python generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffd_points={n_ffd_points} -mach_ref={mach_ref} > log-mesh.txt && "
+        f"plot3dToFoam -noBlank volumeMesh.xyz >> log-mesh.txt && "
+        f"autoPatch 30 -overwrite >> log-mesh.txt && "
+        f"createPatch -overwrite >> log-mesh.txt && "
+        f"renumberMesh -overwrite >> log-mesh.txt && "
         f"cp -r 0_orig 0 && "
-        f'transformPoints -scale "(1 1 0.01)" && '
-        f"dafoam_plot3dtransform.py scale FFD.xyz FFD.xyz 1 1 0.01 && "
-        f"dafoam_plot3d2tecplot.py FFD.xyz FFD.dat && "
+        f'transformPoints -scale "(1 1 0.01)" >> log-mesh.txt && '
+        f"dafoam_plot3dtransform.py scale FFD.xyz FFD.xyz 1 1 0.01 >> log-mesh.txt && "
+        f"dafoam_plot3d2tecplot.py FFD.xyz FFD.dat >> log-mesh.txt && "
         f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD.dat && '
         f"pvpython plot_mesh.py"
     )
 
     result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
-
-    # Write output to disk
-    with open("/home/dafoamuser/mount/airfoils/mesh_generation_log.txt", "w") as f:
-        f.write(result.stdout)
-
-    with open("/home/dafoamuser/mount/airfoils/mesh_generation_error.txt", "w") as f:
-        f.write(result.stderr)
 
     # Read and display the generated image
     image_path = "/home/dafoamuser/mount/airfoils/airfoil_mesh.jpeg"
