@@ -47,6 +47,44 @@ def display_image(image_path: str):
 
 
 @mcp.tool()
+async def airfoil_run_cfd_simulation(cpu_cores: int, angle_of_attack: float):
+    """
+    Airfoil module: Run CFD simulation to compute airfoil flow fields such as velocity, pressure, and temperature.
+
+    Args:
+        cpu_cores: The number of CPU cores to use. >1 means running the simulation in parallel. Default: 1
+        angle_of_attack: The angle of attack boundary condition at the far field for the airfoil. Default: 3.0
+    """
+
+    # Run DAFoam commands directly in this container with mpirun
+    base_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd /home/dafoamuser/mount/airfoils && "
+        f"mpirun -np {cpu_cores} python run_script.py -task=run_model -angle_of_attack={angle_of_attack}"
+    )
+
+    # Add reconstructPar and cleanup only if parallel (cpu_cores > 1)
+    if cpu_cores > 1:
+        bash_command = f"{base_command} && reconstructPar && rm -rf processor* && pvpython plot_flow_field.py"
+    else:
+        bash_command = f"{base_command} && pvpython plot_flow_field.py"
+
+    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
+
+    # Write output to disk
+    with open("/home/dafoamuser/mount/airfoils/cfd_simulation_log.txt", "w") as f:
+        f.write(result.stdout)
+
+    with open("/home/dafoamuser/mount/airfoils/cfd_simulation_error.txt", "w") as f:
+        f.write(result.stderr)
+
+    # Read and display the generated image
+    image_path = "/home/dafoamuser/mount/airfoils/flow_field.jpeg"
+
+    return display_image(image_path)
+
+
+@mcp.tool()
 async def airfoil_view_mesh_details(x_location: float, y_location: float, zoom_in_scale: float):
     """
     Airfoil module: Allow users to view detail airfoil meshes. The mesh must have been generated in airfoils
@@ -76,8 +114,11 @@ async def airfoil_view_mesh_details(x_location: float, y_location: float, zoom_i
 
     return display_image(image_path)
 
+
 @mcp.tool()
-async def airfoil_generate_mesh(airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffd_points: int, mach_ref: float):
+async def airfoil_generate_mesh(
+    airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffd_points: int, mach_ref: float
+):
     """
     Airfoil module: Generate the airfoil mesh and output the mesh image called airfoil_mesh.jpeg
 
@@ -92,13 +133,15 @@ async def airfoil_generate_mesh(airfoil_profile: str, mesh_cells: int, y_plus: f
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd /home/dafoamuser/mount/airfoils && "
+        f"./Allclean.sh && "
         f"python generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffd_points={n_ffd_points} -mach_ref={mach_ref} && "
         f"plot3dToFoam -noBlank volumeMesh.xyz && "
         f"autoPatch 30 -overwrite && "
         f"createPatch -overwrite && "
         f"renumberMesh -overwrite && "
+        f"cp -r 0_orig 0 && "
         f'transformPoints -scale "(1 1 0.01)" && '
-        f'dafoam_plot3dtransform.py scale FFD.xyz FFD.xyz 1 1 0.01 && '
+        f"dafoam_plot3dtransform.py scale FFD.xyz FFD.xyz 1 1 0.01 && "
         f"dafoam_plot3d2tecplot.py FFD.xyz FFD.dat && "
         f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD.dat && '
         f"pvpython plot_mesh.py"
@@ -106,14 +149,15 @@ async def airfoil_generate_mesh(airfoil_profile: str, mesh_cells: int, y_plus: f
 
     result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
+    # Write output to disk
+    with open("/home/dafoamuser/mount/airfoils/mesh_generation_log.txt", "w") as f:
+        f.write(result.stdout)
+
+    with open("/home/dafoamuser/mount/airfoils/mesh_generation_error.txt", "w") as f:
+        f.write(result.stderr)
+
     # Read and display the generated image
     image_path = "/home/dafoamuser/mount/airfoils/airfoil_mesh.jpeg"
-
-    if not os.path.exists(image_path):
-        return TextContent(
-            type="text",
-            text=f"Mesh generation completed but image not found.\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
-        )
 
     return display_image(image_path)
 

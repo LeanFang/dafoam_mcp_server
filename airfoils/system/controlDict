@@ -26,8 +26,8 @@ writeFormat     ascii;
 writePrecision  16;
 writeCompression on;
 timeFormat      general;
-timePrecision   16;
-runTimeModifiable true;
+timePrecision   8;
+runTimeModifiable false;
 
 DebugSwitches
 {

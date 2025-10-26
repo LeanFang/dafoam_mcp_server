@@ -23,6 +23,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-optimizer", help="optimizer to use", type=str, default="IPOPT")
 # which task to run. Options are: run_driver (default), run_model, compute_totals, check_totals
 parser.add_argument("-task", help="type of run to do", type=str, default="run_driver")
+parser.add_argument("-angle_of_attack", help="angle of attack", type=float, default=3.0)
 args = parser.parse_args()
 
 # =============================================================================
@@ -32,8 +33,8 @@ U0 = 10.0
 p0 = 0.0
 nuTilda0 = 4.5e-5
 CL_target = 0.5
-aoa0 = 5.13918623195176
-A0 = 0.1
+aoa0 = args.angle_of_attack
+A0 = 0.01
 # rho is used for normalizing CD and CL
 rho0 = 1.0
 
@@ -41,7 +42,7 @@ rho0 = 1.0
 daOptions = {
     "designSurfaces": ["wing"],
     "solverName": "DASimpleFoam",
-    "primalMinResTol": 1.0e-8,
+    "primalMinResTol": 1.0e-7,
     "primalBC": {
         "U0": {"variable": "U", "patches": ["inout"], "value": [U0, 0.0, 0.0]},
         "p0": {"variable": "p", "patches": ["inout"], "value": [p0]},
@@ -66,7 +67,7 @@ daOptions = {
             "scale": 1.0 / (0.5 * U0 * U0 * A0 * rho0),
         },
     },
-    "adjEqnOption": {"gmresRelTol": 1.0e-6, "pcFillLevel": 1, "jacMatReOrdering": "rcm"},
+    "adjEqnOption": {"gmresRelTol": 1.0e-5, "pcFillLevel": 1, "jacMatReOrdering": "rcm"},
     "normalizeStates": {
         "U": U0,
         "p": U0 * U0 / 2.0,
@@ -83,6 +84,7 @@ daOptions = {
             "components": ["solver", "function"],
         },
     },
+    "checkMeshThreshold": {"maxNonOrth": 70.0, "maxSkewness": 6.0, "maxAspectRatio": 10000.0},
 }
 
 # Mesh deformation setup
@@ -90,7 +92,7 @@ meshOptions = {
     "gridFile": os.getcwd(),
     "fileType": "OpenFOAM",
     # point and normal for the symmetry plane
-    "symmetryPlanes": [[[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]], [[0.0, 0.0, 0.1], [0.0, 0.0, 1.0]]],
+    "symmetryPlanes": [[[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]], [[0.0, 0.0, 0.01], [0.0, 0.0, 1.0]]],
 }
 
 
@@ -109,7 +111,7 @@ class Top(Multipoint):
         self.add_subsystem("mesh", dafoam_builder.get_mesh_coordinate_subsystem())
 
         # add the geometry component (FFD)
-        self.add_subsystem("geometry", OM_DVGEOCOMP(file="FFD/wingFFD.xyz", type="ffd"))
+        self.add_subsystem("geometry", OM_DVGEOCOMP(file="FFD.xyz", type="ffd"))
 
         # add a scenario (flow condition) for optimization, we pass the builder
         # to the scenario to actually run the flow and adjoint
@@ -149,11 +151,11 @@ class Top(Multipoint):
         self.geometry.nom_addShapeFunctionDV(dvName="shape", shapes=shapes)
 
         # setup the volume and thickness constraints
-        leList = [[1e-4, 0.0, 1e-4], [1e-4, 0.0, 0.1 - 1e-4]]
-        teList = [[0.998 - 1e-4, 0.0, 1e-4], [0.998 - 1e-4, 0.0, 0.1 - 1e-4]]
+        leList = [[0.03, 5.0, 1e-3], [0.03, 5.0, 0.01 - 1e-3]]
+        teList = [[0.97, 5.0, 1e-3], [0.97, 5.0, 0.01 - 1e-3]]
         self.geometry.nom_addThicknessConstraints2D("thickcon", leList, teList, nSpan=2, nChord=10)
         self.geometry.nom_addVolumeConstraint("volcon", leList, teList, nSpan=2, nChord=10)
-        self.geometry.nom_addLERadiusConstraints("rcon", leList, 2, [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0])
+        # self.geometry.nom_addLERadiusConstraints("rcon", leList, 2, [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0])
         # NOTE: we no longer need to define the sym and LE/TE constraints
         # because these constraints are defined in the above shape function
 
@@ -174,7 +176,7 @@ class Top(Multipoint):
         self.add_constraint("scenario1.aero_post.CL", equals=CL_target, scaler=1.0)
         self.add_constraint("geometry.thickcon", lower=0.5, upper=3.0, scaler=1.0)
         self.add_constraint("geometry.volcon", lower=1.0, scaler=1.0)
-        self.add_constraint("geometry.rcon", lower=0.8, scaler=1.0)
+        # self.add_constraint("geometry.rcon", lower=0.8, scaler=1.0)
 
 
 # OpenMDAO setup

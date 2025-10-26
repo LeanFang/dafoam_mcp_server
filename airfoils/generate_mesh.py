@@ -29,8 +29,8 @@ n_extrude = int(np.sqrt(args.mesh_cells) / mesh_ratio)
 n_ffd_points = args.n_ffd_points
 distribution_coeff = 1.0
 # estimate the trailing mesh points
-n_trailing_points = int(args.mesh_cells / 10000 + 1)
-# estimate y0_wall based on yPlus. y0=0.15 is yPlus=1 at Mach=0.2
+n_trailing_points = int(args.mesh_cells / 20000) + 3
+# estimate y0_wall based on yPlus. y0=1e-5 is yPlus=1 at Mach=0.2
 y0_wall = args.y_plus * (0.2 / args.mach_ref) * 1e-5
 
 """
@@ -41,6 +41,7 @@ cleanup, and then sample it with a particular distribution.
 filename = "./profiles/" + airfoil_profile.lower() + ".dat"
 coords = readCoordFile(filename)
 airfoil = Airfoil(coords)
+airfoil.makeBluntTE(xCut=0.99)
 coords = airfoil.getSampledPts(
     n_surf_points, spacingFunc=sampling.conical, nTEPts=n_trailing_points, func_args={"coeff": distribution_coeff}
 )
