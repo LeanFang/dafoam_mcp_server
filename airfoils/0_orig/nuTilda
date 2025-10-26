@@ -21,7 +21,7 @@ internalField   uniform 4.5e-05;
 
 boundaryField
 {
-    "(wing.*)"
+    "wing.*"
     {
         type            fixedValue;
         value           uniform 0.0;

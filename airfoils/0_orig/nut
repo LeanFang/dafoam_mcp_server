@@ -21,7 +21,7 @@ internalField   uniform 4.5E-5;
 
 boundaryField
 {
-    "(wing.*)"
+    "wing.*"
     {
         type            nutUSpaldingWallFunction;
         value           $internalField;

@@ -17,11 +17,11 @@ FoamFile
 
 dimensions      [0 0 -1 0 0 0 0];
 
-internalField   uniform 100;
+internalField   uniform 1e4;
 
 boundaryField
 {
-    "(wing.*)"
+    "(wing|wingte)"
     {
         type            omegaWallFunction;
         value           $internalField;
@@ -42,7 +42,6 @@ boundaryField
         value           $internalField;
     }
 }
-
 
 
 // ************************************************************************* //

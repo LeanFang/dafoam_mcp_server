@@ -19,34 +19,54 @@ from pygeo.mphys import OM_DVGEOCOMP
 
 
 parser = argparse.ArgumentParser()
-# which optimizer to use. Options are: IPOPT (default), SLSQP, and SNOPT
 parser.add_argument("-optimizer", help="optimizer to use", type=str, default="IPOPT")
-# which task to run. Options are: run_driver (default), run_model, compute_totals, check_totals
-parser.add_argument("-task", help="type of run to do", type=str, default="run_driver")
+parser.add_argument("-task", help="type of run to do", type=str, default="run_model")
 parser.add_argument("-angle_of_attack", help="angle of attack", type=float, default=3.0)
+parser.add_argument("-mach_number", help="mach number", type=float, default=0.3)
+parser.add_argument("-reynolds_number", help="Reynokds number", type=float, default=1000000.0)
 args = parser.parse_args()
 
 # =============================================================================
 # Input Parameters
 # =============================================================================
-U0 = 10.0
-p0 = 0.0
+
+T0 = 300.0
+p0 = 101325.0
 nuTilda0 = 4.5e-5
+
+L0 = 1.0
+R = 287.0
+k = 1.4
+C = float(np.sqrt(k * R * T0))
+U0 = args.mach_number * C
+
+rho0 = p0 / R / T0
+nu = U0 * L0 / args.reynolds_number
+mu = nu * rho0
+
+solverName = "DARhoSimpleFoam"
+transonicPC = 0
+if args.mach_number > 0.6:
+    solverName = "DARhoSimpleCFoam"
+    transonicPC = 1
+
 CL_target = 0.5
 aoa0 = args.angle_of_attack
 A0 = 0.01
-# rho is used for normalizing CD and CL
-rho0 = 1.0
 
 # Input parameters for DAFoam
 daOptions = {
     "designSurfaces": ["wing"],
-    "solverName": "DASimpleFoam",
+    "solverName": solverName,
+    "transonicPCOption": transonicPC,
     "primalMinResTol": 1.0e-7,
+    "primalMinResTolDiff": 1e3,
     "primalBC": {
         "U0": {"variable": "U", "patches": ["inout"], "value": [U0, 0.0, 0.0]},
         "p0": {"variable": "p", "patches": ["inout"], "value": [p0]},
+        "T0": {"variable": "T", "patches": ["inout"], "value": [T0]},
         "nuTilda0": {"variable": "nuTilda", "patches": ["inout"], "value": [nuTilda0]},
+        "thermo:mu": mu,
         "useWallFunction": True,
     },
     "function": {
@@ -66,11 +86,21 @@ daOptions = {
             "patchVelocityInputName": "patchV",
             "scale": 1.0 / (0.5 * U0 * U0 * A0 * rho0),
         },
+        "CM": {
+            "type": "moment",
+            "source": "patchToFace",
+            "patches": ["wing"],
+            "axis": [0.0, 0.0, 1.0],
+            "center": [0.25, 0.0, 0.0],
+            "scale": 1.0 / (0.5 * U0 * U0 * A0 * rho0 * L0),
+        },
     },
-    "adjEqnOption": {"gmresRelTol": 1.0e-5, "pcFillLevel": 1, "jacMatReOrdering": "rcm"},
+    "adjStateOrdering": "cell",
+    "adjEqnOption": {"gmresRelTol": 1.0e-5, "pcFillLevel": 1, "jacMatReOrdering": "natural"},
     "normalizeStates": {
         "U": U0,
-        "p": U0 * U0 / 2.0,
+        "p": p0,
+        "T": T0,
         "nuTilda": nuTilda0 * 10.0,
         "phi": 1.0,
     },
