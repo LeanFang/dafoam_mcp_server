@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-"""
-DAFoam run script for the NACA0012 airfoil at low-speed
-"""
 
 # =============================================================================
 # Imports
@@ -23,7 +20,8 @@ parser.add_argument("-optimizer", help="optimizer to use", type=str, default="IP
 parser.add_argument("-task", help="type of run to do", type=str, default="run_model")
 parser.add_argument("-angle_of_attack", help="angle of attack", type=float, default=3.0)
 parser.add_argument("-mach_number", help="mach number", type=float, default=0.3)
-parser.add_argument("-reynolds_number", help="Reynokds number", type=float, default=1000000.0)
+parser.add_argument("-reynolds_number", help="Reynolds number", type=float, default=1000000.0)
+parser.add_argument("-lift_constraint", help="The lift constraint", type=float, default=0.5)
 args = parser.parse_args()
 
 # =============================================================================
@@ -50,7 +48,7 @@ if args.mach_number > 0.6:
     solverName = "DARhoSimpleCFoam"
     transonicPC = 1
 
-CL_target = 0.5
+lift_constraint = args.lift_constraint
 aoa0 = args.angle_of_attack
 A0 = 0.01
 
@@ -185,7 +183,9 @@ class Top(Multipoint):
         teList = [[0.97, 5.0, 1e-3], [0.97, 5.0, 0.01 - 1e-3]]
         self.geometry.nom_addThicknessConstraints2D("thickcon", leList, teList, nSpan=2, nChord=10)
         self.geometry.nom_addVolumeConstraint("volcon", leList, teList, nSpan=2, nChord=10)
-        # self.geometry.nom_addLERadiusConstraints("rcon", leList, 2, [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0])
+        self.geometry.nom_addLERadiusConstraints(
+            "rcon", [[0.01, 0.0, 1e-3], [0.01, 0.0, 0.01 - 1e-3]], 2, [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]
+        )
         # NOTE: we no longer need to define the sym and LE/TE constraints
         # because these constraints are defined in the above shape function
 
@@ -203,10 +203,10 @@ class Top(Multipoint):
 
         # add objective and constraints to the top level
         self.add_objective("scenario1.aero_post.CD", scaler=1.0)
-        self.add_constraint("scenario1.aero_post.CL", equals=CL_target, scaler=1.0)
+        self.add_constraint("scenario1.aero_post.CL", lower=lift_constraint, scaler=1.0)
         self.add_constraint("geometry.thickcon", lower=0.5, upper=3.0, scaler=1.0)
         self.add_constraint("geometry.volcon", lower=1.0, scaler=1.0)
-        # self.add_constraint("geometry.rcon", lower=0.8, scaler=1.0)
+        self.add_constraint("geometry.rcon", lower=0.8, scaler=1.0)
 
 
 # OpenMDAO setup
@@ -224,21 +224,21 @@ prob.driver.options["optimizer"] = args.optimizer
 # options for optimizers
 if args.optimizer == "SNOPT":
     prob.driver.opt_settings = {
-        "Major feasibility tolerance": 1.0e-5,
-        "Major optimality tolerance": 1.0e-5,
-        "Minor feasibility tolerance": 1.0e-5,
+        "Major feasibility tolerance": 1.0e-4,
+        "Major optimality tolerance": 1.0e-4,
+        "Minor feasibility tolerance": 1.0e-4,
         "Verify level": -1,
         "Function precision": 1.0e-5,
-        "Major iterations limit": 100,
+        "Major iterations limit": 20,
         "Nonderivative linesearch": None,
         "Print file": "opt_SNOPT_print.txt",
         "Summary file": "opt_SNOPT_summary.txt",
     }
 elif args.optimizer == "IPOPT":
     prob.driver.opt_settings = {
-        "tol": 1.0e-5,
-        "constr_viol_tol": 1.0e-5,
-        "max_iter": 100,
+        "tol": 1.0e-4,
+        "constr_viol_tol": 1.0e-4,
+        "max_iter": 20,
         "print_level": 5,
         "output_file": "opt_IPOPT.txt",
         "mu_strategy": "adaptive",
@@ -249,8 +249,8 @@ elif args.optimizer == "IPOPT":
     }
 elif args.optimizer == "SLSQP":
     prob.driver.opt_settings = {
-        "ACC": 1.0e-5,
-        "MAXIT": 100,
+        "ACC": 1.0e-4,
+        "MAXIT": 20,
         "IFILE": "opt_SLSQP.txt",
     }
 else:
@@ -263,7 +263,9 @@ prob.driver.hist_file = "OptView.hst"
 
 if args.task == "run_driver":
     # solve CL
-    optFuncs.findFeasibleDesign(["scenario1.aero_post.CL"], ["patchV"], targets=[CL_target], designVarsComp=[1])
+    optFuncs.findFeasibleDesign(
+        ["scenario1.aero_post.CL"], ["patchV"], targets=[lift_constraint], designVarsComp=[1], epsFD=[1e-2], tol=1e-3
+    )
     # run the optimization
     prob.run_driver()
 elif args.task == "run_model":

@@ -51,23 +51,25 @@ def display_image(image_path: str):
 
 
 @mcp.tool()
-async def airfoil_run_cfd_simulation(
-    cpu_cores: int, angle_of_attack: float, mach_number: float, reynolds_number: float
+async def airfoil_run_optimization(
+    cpu_cores: int, angle_of_attack: float, mach_number: float, reynolds_number: float, lift_constraint: float
 ):
     """
-    Airfoil module: Run CFD simulation to compute airfoil flow fields such as velocity, pressure, and temperature.
+    Airfoil module: Run CFD-based aerodynamic optimization.
+    Objective: drag coefficient.
+    Design variables: airfoil shape and angle of attack.
+    Constraints: lift, thickness, volume, and leading edge radius
 
     Inputs:
         cpu_cores: The number of CPU cores to use. >1 means running the simulation in parallel. Default: 1
         angle_of_attack: The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
-        mach_number: The Mach number. mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. users can also use Ma to denote the Mach number. We should use the same mach number set in the airfoil_generate_mesh call
-        reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number
+        mach_number: The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. We should use the same mach number set in the airfoil_generate_mesh call.
+        reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number.
+        lift_constraint: The lift constraint. Default: 0.5
     Outputs:
-        1. The image of flow field
-        2. The image of pressure profile
-        3. CD (drag coefficient) value
-        4. CL (lift coefficient) value
-        5. CM (moment coefficient) value
+        1. The image of flow field for the optimized design
+        2. The image of pressure profile for the optimized design
+        3. A dictionary for the airfoil optimization. {CD_optimized (optimized drag coefficient), CL_optimized (optimized lift coefficient), CM_optimized (optimized moment coefficient)}
     """
 
     if mach_number < 0.6:
@@ -79,7 +81,72 @@ async def airfoil_run_cfd_simulation(
     base_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"mpirun -np {cpu_cores} python run_script.py -task=run_model -angle_of_attack={angle_of_attack} -mach_number={mach_number} -reynolds_number={reynolds_number} > log-cfd-simulation.txt"
+        f"mpirun -np {cpu_cores} python run_script.py "
+        f"-task=run_driver "
+        f"-angle_of_attack={angle_of_attack} "
+        f"-mach_number={mach_number} "
+        f"-reynolds_number={reynolds_number} "
+        f"-lift_constraint={lift_constraint} > log-optimization.txt"
+    )
+
+    # Add reconstructPar and cleanup only if parallel (cpu_cores > 1)
+    if cpu_cores > 1:
+        bash_command = f"{base_command} && reconstructPar && rm -rf processor* && pvpython plot_flow_field.py && pvpython plot_pressure_profile.py -mach_number={mach_number}"
+    else:
+        bash_command = f"{base_command} && pvpython plot_flow_field.py && pvpython plot_pressure_profile.py -mach_number={mach_number}"
+
+    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
+
+    # Read and display the generated image
+    image_path1 = f"{airfoil_path}/flow_field.jpeg"
+    image_path2 = f"{airfoil_path}/pressure_profile.jpeg"
+
+    # read CD, CL, and CM
+    with open(f"{airfoil_path}/log-optimization.txt") as f:
+        lines = f.readlines()
+        CD = [line.split()[1] for line in lines if "CD:" in line][-1]
+        CL = [line.split()[1] for line in lines if "CL:" in line][-1]
+        CM = [line.split()[1] for line in lines if "CM:" in line][-1]
+
+    return [
+        display_image(image_path1),
+        display_image(image_path2),
+        {"CD_optimized": CD, "CL_optimized": CL, "CM_optimized": CM},
+    ]
+
+
+@mcp.tool()
+async def airfoil_run_cfd_simulation(
+    cpu_cores: int, angle_of_attack: float, mach_number: float, reynolds_number: float
+):
+    """
+    Airfoil module: Run CFD simulation to compute airfoil flow fields such as velocity, pressure, and temperature.
+
+    Inputs:
+        cpu_cores: The number of CPU cores to use. >1 means running the simulation in parallel. Default: 1
+        angle_of_attack: The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
+        mach_number: The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. We should use the same mach number set in the airfoil_generate_mesh call.
+        reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number.
+    Outputs:
+        1. The image of flow field
+        2. The image of pressure profile
+        3. A dictionary for the airfoil aerodynamics. {CD (drag coefficient), CL (lift coefficient), CM (moment coefficient)}
+    """
+
+    if mach_number < 0.6:
+        os.system(f"cp -r {airfoil_path}/system/fvSolution_subsonic {airfoil_path}/system/fvSolution")
+    else:
+        os.system(f"cp -r {airfoil_path}/system/fvSolution_transonic {airfoil_path}/system/fvSolution")
+
+    # Run DAFoam commands directly in this container with mpirun
+    base_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd {airfoil_path} && "
+        f"mpirun -np {cpu_cores} python run_script.py "
+        f"-task=run_model "
+        f"-angle_of_attack={angle_of_attack} "
+        f"-mach_number={mach_number} "
+        f"-reynolds_number={reynolds_number} > log-cfd-simulation.txt"
     )
 
     # Add reconstructPar and cleanup only if parallel (cpu_cores > 1)
@@ -101,7 +168,7 @@ async def airfoil_run_cfd_simulation(
         CL = [line.split()[1] for line in lines if "CL:" in line][-1]
         CM = [line.split()[1] for line in lines if "CM:" in line][-1]
 
-    return [display_image(image_path1), display_image(image_path2), CD, CL, CM]
+    return [display_image(image_path1), display_image(image_path2), {"CD": CD, "CL": CL, "CM": CM}]
 
 
 @mcp.tool()
