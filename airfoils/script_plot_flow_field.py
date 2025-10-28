@@ -51,4 +51,4 @@ renderView1.Background = [1.0, 1.0, 1.0]
 ColorBy(paraviewfoamDisplay, ('POINTS', args.variable))
 
 # save screenshot
-SaveScreenshot("./image_airfoil_flow_field.jpeg", renderView1, ImageResolution=[1200, 800])
+SaveScreenshot("./image_airfoil_flow_field.png", renderView1, ImageResolution=[1200, 800])

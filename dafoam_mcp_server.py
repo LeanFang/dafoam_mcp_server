@@ -19,7 +19,7 @@ def check_run_status(log_file: str):
     Check whether the cfd simulation or optimization finished
 
     Inputs:
-        log_file: log_file=log-cfd-simulation.txt for CFD simulation. log_file=log-optimization.txt for optimization
+        log_file: log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
     Outputs:
         finished: 1 = the run finishes. 0 = the run does not finish
     """
@@ -86,7 +86,7 @@ async def airfoil_run_optimization(
         reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number.
         lift_constraint: The lift constraint. Default: 0.5
     Outputs:
-        A message saying that the optimization is running in the background and the progress is written to log-optimization.txt
+        A message saying that the optimization is running in the background and the progress is written to log_optimization.txt
     """
 
     if mach_number < 0.6:
@@ -103,7 +103,7 @@ async def airfoil_run_optimization(
         f"-angle_of_attack={angle_of_attack} "
         f"-mach_number={mach_number} "
         f"-reynolds_number={reynolds_number} "
-        f"-lift_constraint={lift_constraint} > log-optimization.txt 2>&1"
+        f"-lift_constraint={lift_constraint} > log_optimization.txt 2>&1"
     )
 
     subprocess.Popen(
@@ -113,7 +113,7 @@ async def airfoil_run_optimization(
         start_new_session=True,  # Detach from parent process
     )
 
-    return "The optimization is running. Check log-optimization.txt for progress."
+    return "The optimization is running. Check log_optimization.txt for progress."
 
 
 @mcp.tool()
@@ -122,7 +122,7 @@ async def airfoil_check_run_status(log_file: str):
     Check whether the cfd simulation or optimization finished
 
     Inputs:
-        log_file: log_file=log-cfd-simulation.txt for CFD simulation. log_file=log-optimization.txt for optimization
+        log_file: log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
     Outputs:
         finished: 1 = the run finishes.  Ask users if they want to plot flow variable or pressure profile. 0 = the run does not finish. Ask users to wait
     """
@@ -143,7 +143,7 @@ async def airfoil_run_cfd_simulation(
         mach_number: The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. We should use the same mach number set in the airfoil_generate_mesh call.
         reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number.
     Outputs:
-        A message saying that the cfd simulation is running in the background and the progress is written to log-cfd-simulation.txt
+        A message saying that the cfd simulation is running in the background and the progress is written to log_cfd_simulation.txt
     """
 
     if mach_number < 0.6:
@@ -159,7 +159,7 @@ async def airfoil_run_cfd_simulation(
         f"-task=run_model "
         f"-angle_of_attack={angle_of_attack} "
         f"-mach_number={mach_number} "
-        f"-reynolds_number={reynolds_number} > log-cfd-simulation.txt 2>&1"
+        f"-reynolds_number={reynolds_number} > log_cfd_simulation.txt 2>&1"
     )
 
     subprocess.Popen(
@@ -169,7 +169,7 @@ async def airfoil_run_cfd_simulation(
         start_new_session=True,  # Detach from parent process
     )
 
-    return "The cfd simulation is running. Check log-cfd-simulation.txt for progress."
+    return "The cfd simulation is running. Check log_cfd_simulation.txt for progress."
 
 
 @mcp.tool()
@@ -186,7 +186,7 @@ async def airfoil_view_flow_field(x_location: float, y_location: float, zoom_in_
         A message about the status of the flow field image
     """
 
-    finished = check_run_status("log-cfd-simulation.txt")
+    finished = check_run_status("log_cfd_simulation.txt")
     if finished == 0:
         return "The CFD simulation is not finished. No flow field plot is generated. Please wait."
 
@@ -199,7 +199,7 @@ async def airfoil_view_flow_field(x_location: float, y_location: float, zoom_in_
     result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
     # Read and display the generated image
-    image_path = f"{airfoil_path}/image_airfoil_flow_field.jpeg"
+    image_path = f"{airfoil_path}/image_airfoil_flow_field.png"
 
     if not os.path.exists(image_path):
         return TextContent(
@@ -207,7 +207,7 @@ async def airfoil_view_flow_field(x_location: float, y_location: float, zoom_in_
             text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
         )
 
-    return "The flow field is plotted as image_airfoil_flow_field.jpeg"
+    return "The flow field is plotted as image_airfoil_flow_field.png"
 
 
 @mcp.tool()
@@ -216,7 +216,7 @@ async def airfoil_view_residual(log_file: str):
     Plot the residual based on the information from the log_file
 
     Inputs:
-        log_file: log_file=log-cfd-simulation.txt for CFD simulation. log_file=log-optimization.txt for optimization
+        log_file: log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
     Outputs:
         A message about the residual image
     """
@@ -230,7 +230,7 @@ async def airfoil_view_residual(log_file: str):
     result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
     # Read and display the generated image
-    image_path = f"{airfoil_path}/image_airfoil_residual.jpeg"
+    image_path = f"{airfoil_path}/image_airfoil_residual.png"
 
     if not os.path.exists(image_path):
         return TextContent(
@@ -238,7 +238,7 @@ async def airfoil_view_residual(log_file: str):
             text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
         )
 
-    return "The flow field is plotted as image_airfoil_residual.jpeg"
+    return "The flow field is plotted as image_airfoil_residual.png"
 
 
 @mcp.tool()
@@ -252,7 +252,7 @@ async def airfoil_view_pressure_profile(mach_number: float):
         A message about the pressure profile image
     """
 
-    finished = check_run_status("log-cfd-simulation.txt")
+    finished = check_run_status("log_cfd_simulation.txt")
     if finished == 0:
         return "The CFD simulation is not finished. No pressure profile plot is generated. Please wait."
 
@@ -265,7 +265,7 @@ async def airfoil_view_pressure_profile(mach_number: float):
     result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
     # Read and display the generated image
-    image_path = f"{airfoil_path}/image_airfoil_pressure_profile.jpeg"
+    image_path = f"{airfoil_path}/image_airfoil_pressure_profile.png"
 
     if not os.path.exists(image_path):
         return TextContent(
@@ -273,7 +273,7 @@ async def airfoil_view_pressure_profile(mach_number: float):
             text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
         )
 
-    return "The pressure profile is plotted as image_airfoil_pressure_profile.jpeg"
+    return "The pressure profile is plotted as image_airfoil_pressure_profile.png"
 
 
 @mcp.tool()
@@ -298,7 +298,7 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
     result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
     # Read and display the generated image
-    image_path = f"{airfoil_path}/image_airfoil_mesh.jpeg"
+    image_path = f"{airfoil_path}/image_airfoil_mesh.png"
 
     if not os.path.exists(image_path):
         return TextContent(
@@ -314,7 +314,7 @@ async def airfoil_generate_mesh(
     airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffd_points: int, mach_number: float
 ):
     """
-    Airfoil module: Generate the airfoil mesh and output the mesh image called airfoil_mesh.jpeg
+    Airfoil module: Generate the airfoil mesh. Call airfoil_view_mesh after airfoil_generate_mesh to plot the mesh image image_airfoil_mesh.png
 
     Inputs:
         airfoil_profile: The name of the airfoil profile, such as rae2822 or naca0012 (no spaces and all lower case letters). Default: naca0012
@@ -337,10 +337,11 @@ async def airfoil_generate_mesh(
         f"renumberMesh -overwrite >> log-mesh.txt && "
         f"cp -r 0_orig 0 && "
         f'transformPoints -scale "(1 1 0.01)" >> log-mesh.txt && '
-        f"dafoam_plot3dtransform.py scale FFD.xyz FFD.xyz 1 1 0.01 >> log-mesh.txt && "
-        f"dafoam_plot3d2tecplot.py FFD.xyz FFD.dat >> log-mesh.txt && "
-        f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD.dat && '
-        f'rm volumeMesh.xyz surfMesh.xyz'
+        f"mv FFD.xyz FFD/ && "
+        f"dafoam_plot3dtransform.py scale FFD/FFD.xyz FFD/FFD.xyz 1 1 0.01 >> log-mesh.txt && "
+        f"dafoam_plot3d2tecplot.py FFD/FFD.xyz FFD/FFD.dat >> log-mesh.txt && "
+        f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD/FFD.dat && '
+        f"rm volumeMesh.xyz surfMesh.xyz"
     )
 
     subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)

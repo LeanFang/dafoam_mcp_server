@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-log_file", help="log file name", type=str, default="log-cfd-simulation.txt")
+parser.add_argument("-log_file", help="log file name", type=str, default="log_cfd_simulation.txt")
 args = parser.parse_args()
 
 # Read the log file
