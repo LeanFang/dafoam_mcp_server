@@ -14,6 +14,25 @@ airfoil_path = "/home/dafoamuser/mount/airfoils/"
 
 
 # helper functions
+def check_run_status(log_file: str):
+    """
+    Check whether the cfd simulation or optimization finished
+
+    Inputs:
+        log_file: log_file=log-cfd-simulation.txt for CFD simulation. log_file=log-optimization.txt for optimization
+    Outputs:
+        finished: 1 = the run finishes. 0 = the run does not finish
+    """
+    f = open(f"{airfoil_path}/{log_file}")
+    lines = f.readlines()
+    f.close()
+    finished = 0
+    if any("DAFoam run finished!" in line for line in lines):
+        finished = 1
+
+    return finished
+
+
 def display_image(image_path: str):
     """
     Display an image from the filesystem
@@ -79,7 +98,7 @@ async def airfoil_run_optimization(
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"mpirun -np {cpu_cores} python run_script.py "
+        f"mpirun -np {cpu_cores} python script_run_dafoam.py "
         f"-task=run_driver "
         f"-angle_of_attack={angle_of_attack} "
         f"-mach_number={mach_number} "
@@ -105,33 +124,10 @@ async def airfoil_check_run_status(log_file: str):
     Inputs:
         log_file: log_file=log-cfd-simulation.txt for CFD simulation. log_file=log-optimization.txt for optimization
     Outputs:
-        [finished, image]
-        finished = 1: the CFD run finished. finished = 0: the CFD run did not finish
-        image: the image of the cfd residual plot. Display the image without any description or explanation.
+        finished: 1 = the run finishes.  Ask users if they want to plot flow variable or pressure profile. 0 = the run does not finish. Ask users to wait
     """
-    f = open(f"{airfoil_path}/{log_file}")
-    lines = f.readlines()
-    f.close()
-    finished = 0
-    if any("DAFoam run finished!" in line for line in lines):
-        finished = 1
-
-    bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && cd {airfoil_path} && python plot_residual.py -log_file={log_file}"
-    )
-
-    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
-
-    # Read and display the generated image
-    image_path = f"{airfoil_path}/residual.jpeg"
-
-    if not os.path.exists(image_path):
-        return TextContent(
-            type="text",
-            text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
-        )
-
-    return [finished, display_image(image_path)]
+    finished = check_run_status(log_file)
+    return finished
 
 
 @mcp.tool()
@@ -159,7 +155,7 @@ async def airfoil_run_cfd_simulation(
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"mpirun -np {cpu_cores} python run_script.py "
+        f"mpirun -np {cpu_cores} python script_run_dafoam.py "
         f"-task=run_model "
         f"-angle_of_attack={angle_of_attack} "
         f"-mach_number={mach_number} "
@@ -177,7 +173,7 @@ async def airfoil_run_cfd_simulation(
 
 
 @mcp.tool()
-async def airfoil_view_flow_field_details(x_location: float, y_location: float, zoom_in_scale: float, variable: str):
+async def airfoil_view_flow_field(x_location: float, y_location: float, zoom_in_scale: float, variable: str):
     """
     Airfoil module: Allow users to view the details of a selected flow field variable. The airfoil CFD simulation must have been done.
 
@@ -187,19 +183,23 @@ async def airfoil_view_flow_field_details(x_location: float, y_location: float, 
         zoom_in_scale: how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more. Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
         variable: which flow field variable to visualize. Options are "U": velocity, "T": temperature, "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
     Outputs:
-        The image of flow field. Display the image without any description or explanation.
+        A message about the status of the flow field image
     """
+
+    finished = check_run_status("log-cfd-simulation.txt")
+    if finished == 0:
+        return "The CFD simulation is not finished. No flow field plot is generated. Please wait."
 
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"pvpython plot_flow_field.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale} -variable={variable}"
+        f"pvpython script_plot_flow_field.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale} -variable={variable}"
     )
 
     result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
     # Read and display the generated image
-    image_path = f"{airfoil_path}/flow_field.jpeg"
+    image_path = f"{airfoil_path}/image_airfoil_flow_field.jpeg"
 
     if not os.path.exists(image_path):
         return TextContent(
@@ -207,11 +207,77 @@ async def airfoil_view_flow_field_details(x_location: float, y_location: float, 
             text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
         )
 
-    return display_image(image_path)
+    return "The flow field is plotted as image_airfoil_flow_field.jpeg"
 
 
 @mcp.tool()
-async def airfoil_view_mesh_details(x_location: float, y_location: float, zoom_in_scale: float):
+async def airfoil_view_residual(log_file: str):
+    """
+    Plot the residual based on the information from the log_file
+
+    Inputs:
+        log_file: log_file=log-cfd-simulation.txt for CFD simulation. log_file=log-optimization.txt for optimization
+    Outputs:
+        A message about the residual image
+    """
+
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd {airfoil_path} && "
+        f"pvpython script_plot_residual.py -log_file={log_file}"
+    )
+
+    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
+
+    # Read and display the generated image
+    image_path = f"{airfoil_path}/image_airfoil_residual.jpeg"
+
+    if not os.path.exists(image_path):
+        return TextContent(
+            type="text",
+            text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
+        )
+
+    return "The flow field is plotted as image_airfoil_residual.jpeg"
+
+
+@mcp.tool()
+async def airfoil_view_pressure_profile(mach_number: float):
+    """
+    Airfoil module: Plot the pressure profile (distribution) on the airfoil surface
+
+    Inputs:
+        mach_number: The Mach number (Ma). We should use the same mach number set in the airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
+    Outputs:
+        A message about the pressure profile image
+    """
+
+    finished = check_run_status("log-cfd-simulation.txt")
+    if finished == 0:
+        return "The CFD simulation is not finished. No pressure profile plot is generated. Please wait."
+
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd {airfoil_path} && "
+        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number}"
+    )
+
+    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
+
+    # Read and display the generated image
+    image_path = f"{airfoil_path}/image_airfoil_pressure_profile.jpeg"
+
+    if not os.path.exists(image_path):
+        return TextContent(
+            type="text",
+            text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
+        )
+
+    return "The pressure profile is plotted as image_airfoil_pressure_profile.jpeg"
+
+
+@mcp.tool()
+async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale: float):
     """
     Airfoil module: Allow users to view detail airfoil meshes. The mesh must have been generated in airfoils
 
@@ -220,19 +286,19 @@ async def airfoil_view_mesh_details(x_location: float, y_location: float, zoom_i
         y_location: where to zoom in to view the airfoil mesh details in the y direction. Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
         zoom_in_scale: how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more. Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
     Outputs:
-        The image of the airfoil mesh. Display the image without any description or explanation.
+        A message about mesh image
     """
 
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"pvpython plot_mesh.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale}"
+        f"pvpython script_plot_mesh.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale}"
     )
 
     result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
     # Read and display the generated image
-    image_path = f"{airfoil_path}/airfoil_mesh.jpeg"
+    image_path = f"{airfoil_path}/image_airfoil_mesh.jpeg"
 
     if not os.path.exists(image_path):
         return TextContent(
@@ -240,7 +306,7 @@ async def airfoil_view_mesh_details(x_location: float, y_location: float, zoom_i
             text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
         )
 
-    return display_image(image_path)
+    return "The mesh is plotted as image_airfoil_mesh"
 
 
 @mcp.tool()
@@ -257,14 +323,14 @@ async def airfoil_generate_mesh(
         n_ffd_points: the Number of FFD control points to change the airfoil geometry. Default: 10
         mach_number: the reference Mach number to estimate the near wall mesh size. Default: 0.1
     Outputs:
-        The image of the airfoil mesh. Display the image without any description or explanation.
+        A message saying that the mesh is generated and the log file is in log-mesh.txt
     """
     # Run DAFoam commands directly in this container with mpirun
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"./Allclean.sh && "
-        f"python generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffd_points={n_ffd_points} -mach_number={mach_number} > log-mesh.txt && "
+        f"python script_generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffd_points={n_ffd_points} -mach_number={mach_number} > log-mesh.txt && "
         f"plot3dToFoam -noBlank volumeMesh.xyz >> log-mesh.txt && "
         f"autoPatch 30 -overwrite >> log-mesh.txt && "
         f"createPatch -overwrite >> log-mesh.txt && "
@@ -274,15 +340,12 @@ async def airfoil_generate_mesh(
         f"dafoam_plot3dtransform.py scale FFD.xyz FFD.xyz 1 1 0.01 >> log-mesh.txt && "
         f"dafoam_plot3d2tecplot.py FFD.xyz FFD.dat >> log-mesh.txt && "
         f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD.dat && '
-        f"pvpython plot_mesh.py"
+        f'rm volumeMesh.xyz surfMesh.xyz'
     )
 
-    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
+    subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
-    # Read and display the generated image
-    image_path = f"{airfoil_path}/airfoil_mesh.jpeg"
-
-    return display_image(image_path)
+    return "The mesh is generated and the log file is in log-mesh.txt"
 
 
 if __name__ == "__main__":

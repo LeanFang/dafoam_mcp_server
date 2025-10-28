@@ -2,7 +2,7 @@
 
 #### import the simple module from the paraview
 from paraview.simple import *
-import argparse
+import argparse, os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-mach_number", help="mach number", type=float, default=0.3)
@@ -18,6 +18,10 @@ paraview.simple._DisableFirstRenderCameraReset()
 
 # create a new 'OpenFOAMReader'
 paraviewfoam = OpenFOAMReader(registrationName="paraview.foam", FileName="./paraview.foam")
+
+# if it is a parallel run, choose Decomposed Case
+if os.path.exists("processor0"):
+    paraviewfoam.CaseType = "Decomposed Case"
 
 # get animation scene
 animationScene1 = GetAnimationScene()
@@ -48,7 +52,7 @@ calculator1.ResultArrayName = "Cp"
 calculator1.Function = "(p-101325)/%f" % coeff
 
 # show data in view
-calculator1Display = Show(calculator1, renderView1, 'GeometryRepresentation')
+calculator1Display = Show(calculator1, renderView1, "GeometryRepresentation")
 
 # hide data in view
 Hide(paraviewfoam, renderView1)
@@ -124,7 +128,7 @@ lineChartView1.LeftAxisRangeMinimum = 1.5
 lineChartView1.LeftAxisRangeMaximum = -1.5
 
 # save screenshot
-SaveScreenshot("./pressure_profile.jpeg", lineChartView1, ImageResolution=[800, 600])
+SaveScreenshot("./image_airfoil_pressure_profile.jpeg", lineChartView1, ImageResolution=[800, 600])
 
 # save data
 # SaveData('/slide_data.csv', proxy=plotOnSortedLines1, PointDataArrays=['U', 'nut', 'p'],
