@@ -50,5 +50,25 @@ renderView1.Background = [1.0, 1.0, 1.0]
 # set scalar coloring
 ColorBy(paraviewfoamDisplay, ('POINTS', args.variable))
 
+# show color bar/color legend
+paraviewfoamDisplay.SetScalarBarVisibility(renderView1, True)
+
+# get color transfer function/color map for 'p'
+pLUT = GetColorTransferFunction(args.variable)
+
+# get color legend/bar for pLUT in view renderView1
+pLUTColorBar = GetScalarBar(pLUT, renderView1)
+
+# change scalar bar placement
+pLUTColorBar.Orientation = 'Horizontal'
+pLUTColorBar.Position = [0.0, 0.5]
+pLUTColorBar.ScalarBarLength = 0.8
+
+pLUTColorBar.TitleFontSize = 10
+pLUTColorBar.LabelFontSize = 10
+pLUTColorBar.LabelFormat = '%g'
+pLUTColorBar.RangeLabelFormat = '%.3e'
+pLUTColorBar.ScalarBarThickness = 8
+
 # save screenshot
-SaveScreenshot("./image_airfoil_flow_field.png", renderView1, ImageResolution=[1200, 800])
+SaveScreenshot("./image_airfoil_flow_field.png", renderView1, ImageResolution=[1200, 1000])
