@@ -25,6 +25,9 @@ paraviewfoamDisplay = Show(paraviewfoam, renderView1, "UnstructuredGridRepresent
 # trace defaults for the display properties.
 paraviewfoamDisplay.Representation = "Surface"
 
+# Properties modified on paraviewfoamDisplay
+paraviewfoamDisplay.Ambient = 0.5
+
 # Properties modified on renderView1
 renderView1.CameraParallelProjection = 1
 
@@ -55,4 +58,4 @@ fFDdatDisplay.AmbientColor = [0.6666666666666666, 0.0, 0.0]
 fFDdatDisplay.DiffuseColor = [0.6666666666666666, 0.0, 0.0]
 
 # save screenshot
-SaveScreenshot("./airfoil_mesh.jpeg", renderView1, ImageResolution=[600, 360])
+SaveScreenshot("./airfoil_mesh.jpeg", renderView1, ImageResolution=[400, 240], Quality=50)

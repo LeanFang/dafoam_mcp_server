@@ -59,6 +59,7 @@ daOptions = {
     "transonicPCOption": transonicPC,
     "primalMinResTol": 1.0e-7,
     "primalMinResTolDiff": 1e3,
+    "printInterval": 10,
     "primalBC": {
         "U0": {"variable": "U", "patches": ["inout"], "value": [U0, 0.0, 0.0]},
         "p0": {"variable": "p", "patches": ["inout"], "value": [p0]},
@@ -268,9 +269,13 @@ if args.task == "run_driver":
     )
     # run the optimization
     prob.run_driver()
+    if MPI.COMM_WORLD.rank == 0:
+        print("\n\nDAFoam run finished!")
 elif args.task == "run_model":
     # just run the primal once
     prob.run_model()
+    if MPI.COMM_WORLD.rank == 0:
+        print("\n\nDAFoam run finished!")
 elif args.task == "compute_totals":
     # just run the primal and adjoint once
     prob.run_model()
