@@ -269,12 +269,12 @@ if args.task == "run_driver":
     # run the optimization
     prob.run_driver()
     if MPI.COMM_WORLD.rank == 0:
-        print("\n\nDAFoam run finished!")
+        os.system("touch .dafoam_run_finished")
 elif args.task == "run_model":
     # just run the primal once
     prob.run_model()
     if MPI.COMM_WORLD.rank == 0:
-        print("\n\nDAFoam run finished!")
+        os.system("touch .dafoam_run_finished")
 elif args.task == "compute_totals":
     # just run the primal and adjoint once
     prob.run_model()

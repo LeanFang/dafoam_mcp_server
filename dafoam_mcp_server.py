@@ -14,23 +14,23 @@ airfoil_path = "/home/dafoamuser/mount/airfoils/"
 
 
 # helper functions
-def check_run_status(log_file: str):
+def check_run_status():
     """
     Check whether the cfd simulation or optimization finished
 
     Inputs:
-        log_file: log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
+        None
     Outputs:
         finished: 1 = the run finishes. 0 = the run does not finish
     """
-    f = open(f"{airfoil_path}/{log_file}")
-    lines = f.readlines()
-    f.close()
-    finished = 0
-    if any("DAFoam run finished!" in line for line in lines):
-        finished = 1
 
-    return finished
+    file_path = f"{airfoil_path}/.dafoam_run_finished"
+    path = Path(file_path).expanduser()
+
+    if path.exists():
+        return 1
+    else:
+        return 0
 
 
 def display_image(image_path: str):
@@ -98,6 +98,7 @@ async def airfoil_run_optimization(
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
+        f"rm -rf .dafoam_run_finished && "
         f"mpirun -np {cpu_cores} python script_run_dafoam.py "
         f"-task=run_driver "
         f"-angle_of_attack={angle_of_attack} "
@@ -117,17 +118,17 @@ async def airfoil_run_optimization(
 
 
 @mcp.tool()
-async def airfoil_check_run_status(log_file: str):
+async def airfoil_check_run_status():
     """
     Check whether the cfd simulation or optimization finished
 
     Inputs:
-        log_file: log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
+        None
     Outputs:
-        finished: 1 = the run finishes.  Ask users if they want to plot flow variable or pressure profile. 0 = the run does not finish. Ask users to wait
+        finished: 1 = the run finishes. 0 = the run does not finish
     """
-    finished = check_run_status(log_file)
-    return finished
+
+    return check_run_status()
 
 
 @mcp.tool()
@@ -155,6 +156,7 @@ async def airfoil_run_cfd_simulation(
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
+        f"rm -rf .dafoam_run_finished && "
         f"mpirun -np {cpu_cores} python script_run_dafoam.py "
         f"-task=run_model "
         f"-angle_of_attack={angle_of_attack} "
@@ -186,7 +188,7 @@ async def airfoil_view_flow_field(x_location: float, y_location: float, zoom_in_
         A message about the status of the flow field image
     """
 
-    finished = check_run_status("log_cfd_simulation.txt")
+    finished = check_run_status()
     if finished == 0:
         return "The CFD simulation is not finished. No flow field plot is generated. Please wait."
 
@@ -224,7 +226,9 @@ async def airfoil_view_residual(log_file: str):
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"pvpython script_plot_residual.py -log_file={log_file}"
+        f"cp {log_file} .temp_{log_file} && "
+        f"pvpython script_plot_residual.py -log_file=.temp_{log_file} && "
+        f"rm .temp_{log_file}"
     )
 
     result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
@@ -252,7 +256,7 @@ async def airfoil_view_pressure_profile(mach_number: float):
         A message about the pressure profile image
     """
 
-    finished = check_run_status("log_cfd_simulation.txt")
+    finished = check_run_status()
     if finished == 0:
         return "The CFD simulation is not finished. No pressure profile plot is generated. Please wait."
 
@@ -323,30 +327,31 @@ async def airfoil_generate_mesh(
         n_ffd_points: the Number of FFD control points to change the airfoil geometry. Default: 10
         mach_number: the reference Mach number to estimate the near wall mesh size. Default: 0.1
     Outputs:
-        A message saying that the mesh is generated and the log file is in log-mesh.txt
+        A message saying that the mesh is generated, the mesh image is saved as image_airfoil_mesh.png, and the log file is in log_mesh.txt
     """
     # Run DAFoam commands directly in this container with mpirun
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"./Allclean.sh && "
-        f"python script_generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffd_points={n_ffd_points} -mach_number={mach_number} > log-mesh.txt && "
-        f"plot3dToFoam -noBlank volumeMesh.xyz >> log-mesh.txt && "
-        f"autoPatch 30 -overwrite >> log-mesh.txt && "
-        f"createPatch -overwrite >> log-mesh.txt && "
-        f"renumberMesh -overwrite >> log-mesh.txt && "
+        f"python script_generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffd_points={n_ffd_points} -mach_number={mach_number} > log_mesh.txt && "
+        f"plot3dToFoam -noBlank volumeMesh.xyz >> log_mesh.txt && "
+        f"autoPatch 30 -overwrite >> log_mesh.txt && "
+        f"createPatch -overwrite >> log_mesh.txt && "
+        f"renumberMesh -overwrite >> log_mesh.txt && "
         f"cp -r 0_orig 0 && "
-        f'transformPoints -scale "(1 1 0.01)" >> log-mesh.txt && '
+        f'transformPoints -scale "(1 1 0.01)" >> log_mesh.txt && '
         f"mv FFD.xyz FFD/ && "
-        f"dafoam_plot3dtransform.py scale FFD/FFD.xyz FFD/FFD.xyz 1 1 0.01 >> log-mesh.txt && "
-        f"dafoam_plot3d2tecplot.py FFD/FFD.xyz FFD/FFD.dat >> log-mesh.txt && "
+        f"dafoam_plot3dtransform.py scale FFD/FFD.xyz FFD/FFD.xyz 1 1 0.01 >> log_mesh.txt && "
+        f"dafoam_plot3d2tecplot.py FFD/FFD.xyz FFD/FFD.dat >> log_mesh.txt && "
         f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD/FFD.dat && '
-        f"rm volumeMesh.xyz surfMesh.xyz"
+        f"rm volumeMesh.xyz surfMesh.xyz && "
+        f"pvpython script_plot_mesh.py"
     )
 
     subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
 
-    return "The mesh is generated and the log file is in log-mesh.txt"
+    return "The mesh is image is in image_airfoil_mesh.png and the log file is in log_mesh.txt"
 
 
 if __name__ == "__main__":
