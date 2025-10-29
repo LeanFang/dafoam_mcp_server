@@ -12,6 +12,7 @@ parser.add_argument("-x_location", help="the camera x_location in the x directio
 parser.add_argument("-y_location", help="the camera y_location in the y direction", type=float, default=0.0)
 parser.add_argument("-zoom_in_scale", help="zoom in level", type=float, default=0.5)
 parser.add_argument("-variable", help="flow field variable to plot", type=str, default="p")
+parser.add_argument("-frame", help="which frame to visualize", type=int, default=-1)
 args = parser.parse_args()
 
 # create a new 'OpenFOAMReader'
@@ -26,6 +27,12 @@ animationScene1 = GetAnimationScene()
 
 # update animation scene based on data timesteps
 animationScene1.UpdateAnimationUsingDataTimeSteps()
+
+# go to the specific frame
+if args.frame == -1:
+    animationScene1.GoToLast()
+else:
+    animationScene1.AnimationTime = args.frame * 0.0001
 
 # get active view
 renderView1 = GetActiveViewOrCreate("RenderView")

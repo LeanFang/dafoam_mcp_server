@@ -175,7 +175,9 @@ async def airfoil_run_cfd_simulation(
 
 
 @mcp.tool()
-async def airfoil_view_flow_field(x_location: float, y_location: float, zoom_in_scale: float, variable: str):
+async def airfoil_view_flow_field(
+    x_location: float, y_location: float, zoom_in_scale: float, variable: str, frame: int
+):
     """
     Airfoil module: Allow users to view the details of a selected flow field variable. The airfoil CFD simulation must have been done.
 
@@ -184,100 +186,99 @@ async def airfoil_view_flow_field(x_location: float, y_location: float, zoom_in_
         y_location: where to zoom in to view the airfoil mesh details in the y direction. Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
         zoom_in_scale: how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more. Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
         variable: which flow field variable to visualize. Options are "U": velocity, "T": temperature, "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
+        frame: which frame to view. The frame is the time-step for cfd simulation or optimization iteration for optimization. Default: -1 (the last frame)
     Outputs:
-        A message about the status of the flow field image
+        Message indicating the status
+        Success: image_airfoil_flow_field.png is successfully generated!
+        Error: Error occurred!
     """
-
-    finished = check_run_status()
-    if finished == 0:
-        return "The CFD simulation is not finished. No flow field plot is generated. Please wait."
 
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"pvpython script_plot_flow_field.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale} -variable={variable}"
+        f"pvpython script_plot_flow_field.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale} -variable={variable} -frame={frame}"
     )
 
-    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
-
-    # Read and display the generated image
-    image_path = f"{airfoil_path}/image_airfoil_flow_field.png"
-
-    if not os.path.exists(image_path):
+    try:
+        result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         return TextContent(
             type="text",
-            text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
+            text=f"image_airfoil_flow_field.png is successfully generated!\n\nStdout:\n{result.stdout}",
         )
-
-    return "The flow field is plotted as image_airfoil_flow_field.png"
+    except subprocess.CalledProcessError:
+        return TextContent(
+            type="text",
+            text=f"Error occurred!\n\nStderr:\n{result.stderr}",
+        )
 
 
 @mcp.tool()
-async def airfoil_view_residual(log_file: str):
+async def airfoil_view_residual(log_file: str, start_time: int, end_time: int):
     """
     Plot the residual based on the information from the log_file
 
     Inputs:
         log_file: log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
+        start_time: the start time index to plot. Default: 0
+        end_time: the end time index to plot. Default: -1 (last time step)
     Outputs:
-        A message about the residual image
+        Message indicating the status
+        Success: image_airfoil_pressure_profile.png is successfully generated!
+        Error: Error occurred!
     """
 
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"cp {log_file} .temp_{log_file} && "
-        f"pvpython script_plot_residual.py -log_file=.temp_{log_file} && "
+        f"pvpython script_plot_residual.py -log_file=.temp_{log_file} -start_time={start_time} -end_time={end_time} && "
         f"rm .temp_{log_file}"
     )
 
-    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
-
-    # Read and display the generated image
-    image_path = f"{airfoil_path}/image_airfoil_residual.png"
-
-    if not os.path.exists(image_path):
+    try:
+        result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         return TextContent(
             type="text",
-            text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
+            text=f"image_airfoil_residual.png is successfully generated!\n\nStdout:\n{result.stdout}",
         )
-
-    return "The flow field is plotted as image_airfoil_residual.png"
+    except subprocess.CalledProcessError:
+        return TextContent(
+            type="text",
+            text=f"Error occurred!\n\nStderr:\n{result.stderr}",
+        )
 
 
 @mcp.tool()
-async def airfoil_view_pressure_profile(mach_number: float):
+async def airfoil_view_pressure_profile(mach_number: float, frame: int):
     """
     Airfoil module: Plot the pressure profile (distribution) on the airfoil surface
 
     Inputs:
         mach_number: The Mach number (Ma). We should use the same mach number set in the airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
+        frame: which frame to view. The frame is the time-step for cfd simulation or optimization iteration for optimization. Default: -1 (the last frame)
     Outputs:
-        A message about the pressure profile image
+        Message indicating the status
+        Success: image_airfoil_pressure_profile.png is successfully generated!
+        Error: Error occurred!
     """
-
-    finished = check_run_status()
-    if finished == 0:
-        return "The CFD simulation is not finished. No pressure profile plot is generated. Please wait."
 
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number}"
+        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -frame={frame}"
     )
 
-    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
-
-    # Read and display the generated image
-    image_path = f"{airfoil_path}/image_airfoil_pressure_profile.png"
-
-    if not os.path.exists(image_path):
+    try:
+        result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         return TextContent(
             type="text",
-            text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
+            text=f"image_airfoil_pressure_profile.png is successfully generated!\n\nStdout:\n{result.stdout}",
         )
-
-    return "The pressure profile is plotted as image_airfoil_pressure_profile.png"
+    except subprocess.CalledProcessError:
+        return TextContent(
+            type="text",
+            text=f"Error occurred!\n\nStderr:\n{result.stderr}",
+        )
 
 
 @mcp.tool()
@@ -290,7 +291,9 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
         y_location: where to zoom in to view the airfoil mesh details in the y direction. Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
         zoom_in_scale: how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more. Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
     Outputs:
-        A message about mesh image
+        Message indicating the status
+        Success: image_airfoil_mesh.png is successfully generated!
+        Error: Error occurred!
     """
 
     bash_command = (
@@ -299,18 +302,17 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
         f"pvpython script_plot_mesh.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale}"
     )
 
-    result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
-
-    # Read and display the generated image
-    image_path = f"{airfoil_path}/image_airfoil_mesh.png"
-
-    if not os.path.exists(image_path):
+    try:
+        result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         return TextContent(
             type="text",
-            text=f"Image not found!\n\nStdout:\n{result.stdout}\n\nStderr:\n{result.stderr}",
+            text=f"image_airfoil_mesh.png is successfully generated!\n\nStdout:\n{result.stdout}",
         )
-
-    return "The mesh is plotted as image_airfoil_mesh"
+    except subprocess.CalledProcessError:
+        return TextContent(
+            type="text",
+            text=f"Error occurred!\n\nStderr:\n{result.stderr}",
+        )
 
 
 @mcp.tool()

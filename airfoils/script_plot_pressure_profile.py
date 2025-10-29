@@ -6,6 +6,7 @@ import argparse, os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-mach_number", help="mach number", type=float, default=0.3)
+parser.add_argument("-frame", help="which frame to visualize", type=int, default=-1)
 args = parser.parse_args()
 
 C0 = 347.2
@@ -28,6 +29,12 @@ animationScene1 = GetAnimationScene()
 
 # update animation scene based on data timesteps
 animationScene1.UpdateAnimationUsingDataTimeSteps()
+
+# go to the specific frame
+if args.frame == -1:
+    animationScene1.GoToLast()
+else:
+    animationScene1.AnimationTime = args.frame * 0.0001
 
 # get active view
 renderView1 = GetActiveViewOrCreate("RenderView")
