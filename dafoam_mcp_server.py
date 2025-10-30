@@ -80,7 +80,7 @@ async def airfoil_run_optimization(
     Constraints: lift, thickness, volume, and leading edge radius
 
     Inputs:
-        cpu_cores: The number of CPU cores to use. >1 means running the simulation in parallel. Default: 1
+        cpu_cores: The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells, and use one more core for every 10,000 more cells. Default: 1
         angle_of_attack: The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
         mach_number: The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. We should use the same mach number set in the airfoil_generate_mesh call.
         reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number.
@@ -139,7 +139,7 @@ async def airfoil_run_cfd_simulation(
     Airfoil module: Run CFD simulation/analysis to compute airfoil flow fields such as velocity, pressure, and temperature.
 
     Inputs:
-        cpu_cores: The number of CPU cores to use. >1 means running the simulation in parallel. Default: 1
+        cpu_cores: The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells, and use one more core for every 10,000 more cells. Default: 1
         angle_of_attack: The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
         mach_number: The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. We should use the same mach number set in the airfoil_generate_mesh call.
         reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number.
@@ -200,27 +200,31 @@ async def airfoil_view_flow_field(
     )
 
     try:
-        result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+        subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         return TextContent(
             type="text",
-            text=f"image_airfoil_flow_field.png is successfully generated!\n\nStdout:\n{result.stdout}",
+            text="image_airfoil_flow_field.png is successfully generated!",
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         return TextContent(
             type="text",
-            text=f"Error occurred!\n\nStderr:\n{result.stderr}",
+            text=f"Error occurred!\n\nStderr:\n{e.stderr}",
         )
 
 
 @mcp.tool()
-async def airfoil_view_residual(log_file: str, start_time: int, end_time: int):
+async def airfoil_view_residual(
+    log_file: str, start_time_cfd: int, end_time_cfd: int, start_time_adjoint: int, end_time_adjoint: int
+):
     """
     Plot the residual based on the information from the log_file
 
     Inputs:
         log_file: log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
-        start_time: the start time index to plot. Default: 0
-        end_time: the end time index to plot. Default: -1 (last time step)
+        start_time_cfd: the cfd start time index to plot. Default: 0
+        end_time_cfd: the cfd end time index to plot. Default: -1 (last time step)
+        start_time_adjoint: the adjoint start time index to plot. Default: 0
+        end_time_adjoint: the adjoint end time index to plot. Default: -1 (last time step)
     Outputs:
         Message indicating the status
         Success: image_airfoil_pressure_profile.png is successfully generated!
@@ -231,20 +235,21 @@ async def airfoil_view_residual(log_file: str, start_time: int, end_time: int):
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"cp {log_file} .temp_{log_file} && "
-        f"pvpython script_plot_residual.py -log_file=.temp_{log_file} -start_time={start_time} -end_time={end_time} && "
+        f"pvpython script_plot_residual.py -log_file=.temp_{log_file} -start_time_cfd={start_time_cfd} -end_time_cfd={end_time_cfd} "
+        f"-start_time_adjoint={start_time_adjoint} -end_time_adjoint={end_time_adjoint} && "
         f"rm .temp_{log_file}"
     )
 
     try:
-        result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+        subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         return TextContent(
             type="text",
-            text=f"image_airfoil_residual.png is successfully generated!\n\nStdout:\n{result.stdout}",
+            text="image_airfoil_residual.png is successfully generated!",
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         return TextContent(
             type="text",
-            text=f"Error occurred!\n\nStderr:\n{result.stderr}",
+            text=f"Error occurred!\n\nStderr:\n{e.stderr}",
         )
 
 
@@ -269,15 +274,15 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
     )
 
     try:
-        result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+        subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         return TextContent(
             type="text",
-            text=f"image_airfoil_pressure_profile.png is successfully generated!\n\nStdout:\n{result.stdout}",
+            text="image_airfoil_pressure_profile.png is successfully generated!",
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         return TextContent(
             type="text",
-            text=f"Error occurred!\n\nStderr:\n{result.stderr}",
+            text=f"Error occurred!\n\nStderr:\n{e.stderr}",
         )
 
 
@@ -303,15 +308,15 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
     )
 
     try:
-        result = subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+        subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         return TextContent(
             type="text",
-            text=f"image_airfoil_mesh.png is successfully generated!\n\nStdout:\n{result.stdout}",
+            text="image_airfoil_mesh.png is successfully generated!",
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         return TextContent(
             type="text",
-            text=f"Error occurred!\n\nStderr:\n{result.stderr}",
+            text=f"Error occurred!\n\nStderr:\n{e.stderr}",
         )
 
 
@@ -329,7 +334,9 @@ async def airfoil_generate_mesh(
         n_ffd_points: the Number of FFD control points to change the airfoil geometry. Default: 10
         mach_number: the reference Mach number to estimate the near wall mesh size. Default: 0.1
     Outputs:
-        A message saying that the mesh is generated, the mesh image is saved as image_airfoil_mesh.png, and the log file is in log_mesh.txt
+        Message indicating the status
+        Success: image_airfoil_mesh.png is successfully generated!
+        Error: Error occurred!
     """
     # Run DAFoam commands directly in this container with mpirun
     bash_command = (
@@ -351,9 +358,17 @@ async def airfoil_generate_mesh(
         f"pvpython script_plot_mesh.py"
     )
 
-    subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True)
-
-    return "The mesh is image is in image_airfoil_mesh.png and the log file is in log_mesh.txt"
+    try:
+        subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+        return TextContent(
+            type="text",
+            text="The mesh and image_airfoil_mesh.png are successfully generated!",
+        )
+    except subprocess.CalledProcessError as e:
+        return TextContent(
+            type="text",
+            text=f"Error occurred!\n\nStderr:\n{e.stderr}",
+        )
 
 
 if __name__ == "__main__":

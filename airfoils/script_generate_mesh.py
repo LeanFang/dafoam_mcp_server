@@ -26,7 +26,7 @@ airfoil_profile = args.airfoil_profile
 mesh_ratio = 1.8
 n_surf_points = int(np.sqrt(args.mesh_cells) * mesh_ratio)
 n_extrude = int(np.sqrt(args.mesh_cells) / mesh_ratio)
-n_ffd_points = args.n_ffd_points
+n_ffd_points = int(args.n_ffd_points / 2)
 distribution_coeff = 1.0
 # estimate the trailing mesh points
 n_trailing_points = int(args.mesh_cells / 20000) + 3
