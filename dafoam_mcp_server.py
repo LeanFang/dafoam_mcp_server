@@ -8,6 +8,7 @@ import asyncio
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import threading
 import logging
+import socket
 
 # Suppress all logging to stdout/stderr before MCP starts
 logging.basicConfig(level=logging.CRITICAL)
@@ -20,6 +21,7 @@ airfoil_path = "/home/dafoamuser/mount/airfoils/"
 # HTTP server configuration for file serving
 FILE_HTTP_PORT = 8001  # Changed to 8001 to avoid conflict with MCP HTTP port
 http_server = None
+server_started = False
 
 
 class CustomHTTPHandler(SimpleHTTPRequestHandler):
@@ -33,24 +35,65 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         pass
 
 
+def get_local_ip():
+    """Get the local IP address of the machine"""
+    try:
+        # Create a socket to get the local IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except Exception:
+        return "127.0.0.1"
+
+
 def start_http_server():
     """Start HTTP server in background thread"""
-    global http_server
+    global http_server, server_started
     try:
-        http_server = HTTPServer(("0.0.0.0", FILE_HTTP_PORT), CustomHTTPHandler)
+        # Try binding to 0.0.0.0 first, fallback to 127.0.0.1
+        try:
+            http_server = HTTPServer(("0.0.0.0", FILE_HTTP_PORT), CustomHTTPHandler)
+        except OSError:
+            # If 0.0.0.0 fails (common on some Windows configurations), try 127.0.0.1
+            http_server = HTTPServer(("127.0.0.1", FILE_HTTP_PORT), CustomHTTPHandler)
+
+        server_started = True
         http_server.serve_forever()
-    except Exception:
-        pass
+    except Exception as e:
+        # Log error to a file for debugging
+        with open(f"{airfoil_path}http_server_error.txt", "w") as f:
+            f.write(f"HTTP Server failed to start: {str(e)}\n")
+        server_started = False
 
 
 # Start HTTP server in daemon thread when module loads
 server_thread = threading.Thread(target=start_http_server, daemon=True)
 server_thread.start()
 
+# Give the server a moment to start
+import time
+
+time.sleep(0.5)
+
+
+def get_server_url():
+    """Get the appropriate server URL based on what's available"""
+    local_ip = get_local_ip()
+
+    # Return multiple URL options for user to try
+    urls = [
+        f"http://localhost:{FILE_HTTP_PORT}",
+        f"http://127.0.0.1:{FILE_HTTP_PORT}",
+        f"http://{local_ip}:{FILE_HTTP_PORT}",
+    ]
+    return urls
+
 
 def create_multi_image_html(image_files: list, titles: list, main_title: str = "Airfoil Visualization") -> str:
     """
-    Create an HTML wrapper for multiple images displayed side by side
+    Create an HTML wrapper for multiple images displayed side by side with embedded base64 images
 
     Inputs:
         image_files: List of image filenames (e.g., ['image1.png', 'image2.png'])
@@ -99,6 +142,24 @@ def create_multi_image_html(image_files: list, titles: list, main_title: str = "
         </div>
         """
 
+    # Add server status information
+    server_status = ""
+    if server_started:
+        urls = get_server_url()
+        server_status = f"""
+        <div class="server-info">
+            <h3>Alternative Access URLs:</h3>
+            <p>If the main link doesn't work, try these:</p>
+            <ul>
+                {''.join([f'<li><a href="{url}" target="_blank">{url}</a></li>' for url in urls])}
+            </ul>
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                Note: Images are embedded in this HTML file and don't require server access. 
+                You can save this HTML file and open it offline.
+            </p>
+        </div>
+        """
+
     # Create HTML content
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -132,6 +193,11 @@ def create_multi_image_html(image_files: list, titles: list, main_title: str = "
             text-align: center;
             margin-bottom: 20px;
             font-size: 20px;
+        }}
+        h3 {{
+            color: #555;
+            font-size: 16px;
+            margin-top: 20px;
         }}
         .image-section {{
             margin-bottom: 50px;
@@ -171,12 +237,34 @@ def create_multi_image_html(image_files: list, titles: list, main_title: str = "
         .download-btn:hover {{
             background-color: #45a049;
         }}
+        .server-info {{
+            background-color: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+            border-left: 4px solid #4CAF50;
+        }}
+        .server-info ul {{
+            list-style-type: none;
+            padding-left: 0;
+        }}
+        .server-info li {{
+            margin: 8px 0;
+        }}
+        .server-info a {{
+            color: #0066cc;
+            text-decoration: none;
+        }}
+        .server-info a:hover {{
+            text-decoration: underline;
+        }}
     </style>
 </head>
 <body>
     <div class="main-container">
         <h1>{main_title}</h1>
         {image_sections}
+        {server_status}
     </div>
 </body>
 </html>"""
@@ -193,62 +281,6 @@ def create_multi_image_html(image_files: list, titles: list, main_title: str = "
         f.write(html_content)
 
     return html_filename
-
-
-# helper functions
-def check_run_status():
-    """
-    Check whether the cfd simulation or optimization finished
-
-    Inputs:
-        None
-    Outputs:
-        finished: 1 = the run finishes. 0 = the run does not finish
-    """
-
-    file_path = f"{airfoil_path}/.dafoam_run_finished"
-    path = Path(file_path).expanduser()
-
-    if path.exists():
-        return 1
-    else:
-        return 0
-
-
-def display_image(image_path: str):
-    """
-    Display an image from the filesystem
-
-    Inputs:
-        image_path: Path to the image file. Ask users to set the absolute path.
-    Outputs:
-        The image
-    """
-    path = Path(image_path).expanduser()
-
-    if not path.exists():
-        return TextContent(type="text", text=f"Error: File not found: {path}")
-
-    if not path.is_file():
-        return TextContent(type="text", text=f"Error: Not a file: {path}")
-
-    # Read and encode image
-    with open(path, "rb") as f:
-        image_data = base64.b64encode(f.read()).decode("utf-8")
-
-    # Determine MIME type
-    suffix = path.suffix.lower()
-    mime_types = {
-        ".png": "image/png",
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".gif": "image/gif",
-        ".webp": "image/webp",
-    }
-    mime_type = mime_types.get(suffix, "image/png")
-
-    # Return as ImageContent
-    return ImageContent(type="image", data=image_data, mimeType=mime_type)
 
 
 @mcp.tool()
@@ -293,7 +325,7 @@ async def airfoil_run_optimization(
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"rm -rf .dafoam_run_finished && "
-        f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py "
+        f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py -task=run_driver "
         f"-angle_of_attack={angle_of_attack} -mach_number={mach_number} -reynolds_number={reynolds_number} "
         f"-lift_constraint={lift_constraint} > log_optimization.txt 2>&1"
     )
