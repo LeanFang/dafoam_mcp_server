@@ -9,10 +9,7 @@ Build an MCP server (airfoils)
   <pre>
   docker pull dafoam/opt-packages:latest
   </pre>
-- Download the dafoam_mcp_server repo
-  <pre>
-  git clone https://github.com/iDesign-Lab/dafoam_mcp_server.git
-  </pre>
+- Download the zip file of the dafoam_mcp_server repo from GitHub https://github.com/iDesign-Lab/dafoam_mcp_server/archive/refs/heads/main.zip and unzip it. Windows users can't use the git clone command because it will change the file format for the bash script.
   
 - Open a terminal and and cd into dafoam_mcp_server/airfoils, then run the following to build the dafoam_mcp_server docker image
   <pre>
@@ -23,7 +20,7 @@ Connect the DAFoam MCP server to a client (Claude).
 
 - Download and install Claude app from https://www.claude.com/download. Open the Claude app (you may need to sign up for an account).
 - In Claude's app, locate to the bottom left and click: "Your Account->Settings->Developer". Then, click "Edit Config", this will open a directory where Claude saves your claude_desktop_config.json file. 
-- Open claude_desktop_config.json and add these into it. Here `abs_path_to_your_dafoam_mcp_server` is the absolute path of the dafoam_mcp_server repo on your local MacOS system, e.g., `/Users/phe/Desktop/dafoam_mcp_server`. NOTE: the DAFoam MCP will make modifications ONLY in this dafoam_mcp_server folder.
+- Open claude_desktop_config.json and add these into it. Here `abs_path_to_your_dafoam_mcp_server` is the absolute path of the dafoam_mcp_server repo on your local MacOS system, e.g., `/Users/phe/Desktop/dafoam_mcp_server` for MacOS or `C:\\Users\phe\dafoam_mcp_server` for Windows. NOTE: the DAFoam MCP will make modifications ONLY in this dafoam_mcp_server folder. Also note that the dafoam_mcp_server.py should be in your /abs_path_to_your_dafoam_mcp_server directory.
 
   <pre>
   {
@@ -34,6 +31,8 @@ Connect the DAFoam MCP server to a client (Claude).
           "run", 
           "-i", 
           "--rm",
+          "-p",
+          "8001:8001",
           "-v", 
           "/abs_path_to_your_dafoam_mcp_server:/home/dafoamuser/mount",
           "dafoam_mcp_server"
