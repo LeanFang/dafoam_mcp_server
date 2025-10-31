@@ -1,16 +1,198 @@
-from typing import Any
-import httpx
 import os
 from mcp.server.fastmcp import FastMCP
 import base64
 from pathlib import Path
 from mcp.types import ImageContent, TextContent
 import subprocess
+import asyncio
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+import threading
+import logging
+
+# Suppress all logging to stdout/stderr before MCP starts
+logging.basicConfig(level=logging.CRITICAL)
 
 # Initialize FastMCP server
 mcp = FastMCP("dafoam_mcp_server")
 
 airfoil_path = "/home/dafoamuser/mount/airfoils/"
+
+# HTTP server configuration for file serving
+FILE_HTTP_PORT = 8001  # Changed to 8001 to avoid conflict with MCP HTTP port
+http_server = None
+
+
+class CustomHTTPHandler(SimpleHTTPRequestHandler):
+    """Custom HTTP handler to serve files from airfoil_path"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=airfoil_path, **kwargs)
+
+    def log_message(self, format, *args):
+        """Suppress HTTP server logs"""
+        pass
+
+
+def start_http_server():
+    """Start HTTP server in background thread"""
+    global http_server
+    try:
+        http_server = HTTPServer(("0.0.0.0", FILE_HTTP_PORT), CustomHTTPHandler)
+        http_server.serve_forever()
+    except Exception:
+        pass
+
+
+# Start HTTP server in daemon thread when module loads
+server_thread = threading.Thread(target=start_http_server, daemon=True)
+server_thread.start()
+
+
+def create_multi_image_html(image_files: list, titles: list, main_title: str = "Airfoil Visualization") -> str:
+    """
+    Create an HTML wrapper for multiple images displayed side by side
+
+    Inputs:
+        image_files: List of image filenames (e.g., ['image1.png', 'image2.png'])
+        titles: List of titles for each image
+        main_title: Main title for the HTML page
+    Outputs:
+        html_filename: Name of the created HTML file
+    """
+    if len(image_files) != len(titles):
+        return None
+
+    # Read all images and convert to base64
+    image_data_list = []
+    for i, image_filename in enumerate(image_files):
+        image_path = Path(airfoil_path) / image_filename
+        if not image_path.exists():
+            continue
+
+        with open(image_path, "rb") as img_file:
+            img_data = base64.b64encode(img_file.read()).decode("utf-8")
+
+        # Determine image type
+        img_extension = image_path.suffix.lower()
+        mime_type = "image/png" if img_extension == ".png" else "image/jpeg"
+
+        image_data_list.append({"data": img_data, "mime": mime_type, "filename": image_filename, "title": titles[i]})
+
+    if not image_data_list:
+        return None
+
+    # Create image sections HTML
+    image_sections = ""
+    for img_info in image_data_list:
+        image_sections += f"""
+        <div class="image-section">
+            <h2>{img_info['title']}</h2>
+            <div class="image-container">
+                <img src="data:{img_info['mime']};base64,{img_info['data']}" alt="{img_info['title']}">
+            </div>
+            <div class="image-info">
+                <p>Image: {img_info['filename']}</p>
+                <a href="data:{img_info['mime']};base64,{img_info['data']}" download="{img_info['filename']}" class="download-btn">
+                    Download Image
+                </a>
+            </div>
+        </div>
+        """
+
+    # Create HTML content
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{main_title}</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }}
+        .main-container {{
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        h1 {{
+            color: #333;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 28px;
+        }}
+        h2 {{
+            color: #444;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }}
+        .image-section {{
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }}
+        .image-section:last-child {{
+            border-bottom: none;
+        }}
+        .image-container {{
+            text-align: center;
+            margin: 20px 0;
+        }}
+        img {{
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }}
+        .image-info {{
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+            font-size: 14px;
+        }}
+        .download-btn {{
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }}
+        .download-btn:hover {{
+            background-color: #45a049;
+        }}
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <h1>{main_title}</h1>
+        {image_sections}
+    </div>
+</body>
+</html>"""
+
+    # Save HTML file - use first image name or generic name
+    if len(image_files) == 1:
+        html_filename = image_files[0].replace(".png", ".html").replace(".jpg", ".html")
+    else:
+        html_filename = "image_airfoil_convergence.html"
+
+    html_path = Path(airfoil_path) / html_filename
+
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    return html_filename
 
 
 # helper functions
@@ -70,6 +252,24 @@ def display_image(image_path: str):
 
 
 @mcp.tool()
+async def airfoil_check_run_status():
+    """
+    Check whether the cfd simulation or optimization finished
+
+    Inputs:
+        None
+    Outputs:
+        finished: 1 = the run finishes. 0 = the run does not finish
+    """
+
+    # Run file check in executor to avoid blocking
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, check_run_status)
+
+    return TextContent(type="text", text=f"{result}")
+
+
+@mcp.tool()
 async def airfoil_run_optimization(
     cpu_cores: int, angle_of_attack: float, mach_number: float, reynolds_number: float, lift_constraint: float
 ):
@@ -89,46 +289,27 @@ async def airfoil_run_optimization(
         A message saying that the optimization is running in the background and the progress is written to log_optimization.txt
     """
 
-    if mach_number < 0.6:
-        os.system(f"cp -r {airfoil_path}/system/fvSolution_subsonic {airfoil_path}/system/fvSolution")
-    else:
-        os.system(f"cp -r {airfoil_path}/system/fvSolution_transonic {airfoil_path}/system/fvSolution")
-
-    # Run DAFoam commands directly in this container with mpirun
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"rm -rf .dafoam_run_finished && "
-        f"mpirun -np {cpu_cores} python script_run_dafoam.py "
-        f"-task=run_driver "
-        f"-angle_of_attack={angle_of_attack} "
-        f"-mach_number={mach_number} "
-        f"-reynolds_number={reynolds_number} "
+        f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py "
+        f"-angle_of_attack={angle_of_attack} -mach_number={mach_number} -reynolds_number={reynolds_number} "
         f"-lift_constraint={lift_constraint} > log_optimization.txt 2>&1"
     )
 
-    subprocess.Popen(
-        ["bash", "-c", bash_command],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,  # Detach from parent process
-    )
-
-    return "The optimization is running. Check log_optimization.txt for progress."
-
-
-@mcp.tool()
-async def airfoil_check_run_status():
-    """
-    Check whether the cfd simulation or optimization finished
-
-    Inputs:
-        None
-    Outputs:
-        finished: 1 = the run finishes. 0 = the run does not finish
-    """
-
-    return check_run_status()
+    try:
+        # Run in non-blocking background mode
+        subprocess.Popen(["bash", "-c", bash_command])
+        return TextContent(
+            type="text",
+            text="Optimization started in the background. Progress is being written to log_optimization.txt. Use airfoil_check_run_status to check if it's finished.",
+        )
+    except Exception as e:
+        return TextContent(
+            type="text",
+            text=f"Error starting optimization: {str(e)}",
+        )
 
 
 @mcp.tool()
@@ -147,31 +328,26 @@ async def airfoil_run_cfd_simulation(
         A message saying that the cfd simulation is running in the background and the progress is written to log_cfd_simulation.txt
     """
 
-    if mach_number < 0.6:
-        os.system(f"cp -r {airfoil_path}/system/fvSolution_subsonic {airfoil_path}/system/fvSolution")
-    else:
-        os.system(f"cp -r {airfoil_path}/system/fvSolution_transonic {airfoil_path}/system/fvSolution")
-
-    # Run DAFoam commands directly in this container with mpirun
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"rm -rf .dafoam_run_finished && "
-        f"mpirun -np {cpu_cores} python script_run_dafoam.py "
-        f"-task=run_model "
-        f"-angle_of_attack={angle_of_attack} "
-        f"-mach_number={mach_number} "
-        f"-reynolds_number={reynolds_number} > log_cfd_simulation.txt 2>&1"
+        f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py "
+        f"-angle_of_attack={angle_of_attack} -mach_number={mach_number} -reynolds_number={reynolds_number} > log_cfd_simulation.txt 2>&1"
     )
 
-    subprocess.Popen(
-        ["bash", "-c", bash_command],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,  # Detach from parent process
-    )
-
-    return "The cfd simulation is running. Check log_cfd_simulation.txt for progress."
+    try:
+        # Run in non-blocking background mode
+        subprocess.Popen(["bash", "-c", bash_command])
+        return TextContent(
+            type="text",
+            text="CFD simulation started in the background. Progress is being written to log_cfd_simulation.txt. Use airfoil_check_run_status to check if it's finished.",
+        )
+    except Exception as e:
+        return TextContent(
+            type="text",
+            text=f"Error starting CFD simulation: {str(e)}",
+        )
 
 
 @mcp.tool()
@@ -188,8 +364,8 @@ async def airfoil_view_flow_field(
         variable: which flow field variable to visualize. Options are "U": velocity, "T": temperature, "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
         frame: which frame to view. The frame is the time-step for cfd simulation or optimization iteration for optimization. Default: -1 (the last frame)
     Outputs:
-        Message indicating the status
-        Success: image_airfoil_flow_field.png is successfully generated!
+        Message indicating the status with HTML link
+        Success: image_airfoil_flow_field.png is successfully generated and wrapped in HTML!
         Error: Error occurred!
     """
 
@@ -200,11 +376,25 @@ async def airfoil_view_flow_field(
     )
 
     try:
-        subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
-        return TextContent(
-            type="text",
-            text="image_airfoil_flow_field.png is successfully generated!",
+        # run in non-blocking mode
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         )
+
+        # Create HTML wrapper
+        html_file = create_html_wrapper("image_airfoil_flow_field.png", f"Airfoil Flow Field - {variable}")
+
+        if html_file:
+            return TextContent(
+                type="text",
+                text=f"Flow field visualization successfully generated!\n\nView the result: http://localhost:{FILE_HTTP_PORT}/{html_file}",
+            )
+        else:
+            return TextContent(
+                type="text",
+                text="Image generated but HTML wrapper creation failed.",
+            )
     except subprocess.CalledProcessError as e:
         return TextContent(
             type="text",
@@ -217,7 +407,7 @@ async def airfoil_view_residual(
     log_file: str, start_time_cfd: int, end_time_cfd: int, start_time_adjoint: int, end_time_adjoint: int
 ):
     """
-    Plot the residual based on the information from the log_file
+    Plot the residual and function convergence based on the information from the log_file
 
     Inputs:
         log_file: log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
@@ -226,26 +416,47 @@ async def airfoil_view_residual(
         start_time_adjoint: the adjoint start time index to plot. Default: 0
         end_time_adjoint: the adjoint end time index to plot. Default: -1 (last time step)
     Outputs:
-        Message indicating the status
-        Success: image_airfoil_pressure_profile.png is successfully generated!
+        Message indicating the status with HTML links
+        Success: Residual and function plots generated with HTML wrappers!
         Error: Error occurred!
     """
 
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"cp {log_file} .temp_{log_file} && "
-        f"pvpython script_plot_residual.py -log_file=.temp_{log_file} -start_time_cfd={start_time_cfd} -end_time_cfd={end_time_cfd} "
+        f"pvpython script_plot_residual.py -log_file={log_file} -start_time_cfd={start_time_cfd} -end_time_cfd={end_time_cfd} "
         f"-start_time_adjoint={start_time_adjoint} -end_time_adjoint={end_time_adjoint} && "
-        f"rm .temp_{log_file}"
+        f"pvpython script_plot_function.py -log_file={log_file} -start_time={start_time_cfd} -end_time={end_time_cfd} "
     )
 
     try:
-        subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
-        return TextContent(
-            type="text",
-            text="image_airfoil_residual.png is successfully generated!",
+        # run in non-blocking mode
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         )
+
+        # Create a single HTML with both images
+        image_files = [
+            "image_airfoil_residual_cfd.png",
+            "image_airfoil_function_cd.png",
+            "image_airfoil_function_cl.png",
+            "image_airfoil_function_cm.png",
+        ]
+        image_titles = ["CFD Residual Convergence", "CD Convergence", "CL Convergence", "CM Convergence"]
+        combined_html = create_multi_image_html(image_files, image_titles, "Airfoil Convergence Analysis")
+
+        if combined_html:
+            return TextContent(
+                type="text",
+                text=f"Residual and function plots successfully generated!\n\nView convergence: http://localhost:{FILE_HTTP_PORT}/{combined_html}",
+            )
+        else:
+            return TextContent(
+                type="text",
+                text="Plots generated but HTML wrapper creation failed.",
+            )
+
     except subprocess.CalledProcessError as e:
         return TextContent(
             type="text",
@@ -262,8 +473,8 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
         mach_number: The Mach number (Ma). We should use the same mach number set in the airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
         frame: which frame to view. The frame is the time-step for cfd simulation or optimization iteration for optimization. Default: -1 (the last frame)
     Outputs:
-        Message indicating the status
-        Success: image_airfoil_pressure_profile.png is successfully generated!
+        Message indicating the status with HTML link
+        Success: image_airfoil_pressure_profile.png is successfully generated and wrapped in HTML!
         Error: Error occurred!
     """
 
@@ -274,11 +485,27 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
     )
 
     try:
-        subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
-        return TextContent(
-            type="text",
-            text="image_airfoil_pressure_profile.png is successfully generated!",
+        # run in non-blocking mode
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         )
+
+        # Create HTML wrapper using multi-image function
+        html_file = create_multi_image_html(
+            ["image_airfoil_pressure_profile.png"], ["Airfoil Pressure Profile"], "Airfoil Pressure Distribution"
+        )
+
+        if html_file:
+            return TextContent(
+                type="text",
+                text=f"Pressure profile successfully generated!\n\nView the result: http://localhost:{FILE_HTTP_PORT}/{html_file}",
+            )
+        else:
+            return TextContent(
+                type="text",
+                text="Image generated but HTML wrapper creation failed.",
+            )
     except subprocess.CalledProcessError as e:
         return TextContent(
             type="text",
@@ -296,8 +523,8 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
         y_location: where to zoom in to view the airfoil mesh details in the y direction. Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
         zoom_in_scale: how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more. Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
     Outputs:
-        Message indicating the status
-        Success: image_airfoil_mesh.png is successfully generated!
+        Message indicating the status with HTML link
+        Success: image_airfoil_mesh.png is successfully generated and wrapped in HTML!
         Error: Error occurred!
     """
 
@@ -308,11 +535,25 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
     )
 
     try:
-        subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
-        return TextContent(
-            type="text",
-            text="image_airfoil_mesh.png is successfully generated!",
+        # run in non-blocking mode
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         )
+
+        # Create HTML wrapper using multi-image function
+        html_file = create_multi_image_html(["image_airfoil_mesh.png"], ["Airfoil Mesh Visualization"], "Airfoil Mesh")
+
+        if html_file:
+            return TextContent(
+                type="text",
+                text=f"Mesh visualization successfully generated!\n\nView the result: http://localhost:{FILE_HTTP_PORT}/{html_file}",
+            )
+        else:
+            return TextContent(
+                type="text",
+                text="Image generated but HTML wrapper creation failed.",
+            )
     except subprocess.CalledProcessError as e:
         return TextContent(
             type="text",
@@ -334,8 +575,8 @@ async def airfoil_generate_mesh(
         n_ffd_points: the Number of FFD control points to change the airfoil geometry. Default: 10
         mach_number: the reference Mach number to estimate the near wall mesh size. Default: 0.1
     Outputs:
-        Message indicating the status
-        Success: image_airfoil_mesh.png is successfully generated!
+        Message indicating the status with HTML link
+        Success: Mesh and visualization successfully generated with HTML wrapper!
         Error: Error occurred!
     """
     # Run DAFoam commands directly in this container with mpirun
@@ -359,11 +600,29 @@ async def airfoil_generate_mesh(
     )
 
     try:
-        subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
-        return TextContent(
-            type="text",
-            text="The mesh and image_airfoil_mesh.png are successfully generated!",
+        # run in non-blocking mode
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         )
+
+        # Create HTML wrapper using multi-image function
+        html_file = create_multi_image_html(
+            ["image_airfoil_mesh.png"],
+            [f"Airfoil Mesh - {airfoil_profile.upper()}"],
+            f"Mesh Generation: {airfoil_profile.upper()}",
+        )
+
+        if html_file:
+            return TextContent(
+                type="text",
+                text=f"✓ Mesh successfully generated for {airfoil_profile}!\n\nView the mesh: http://localhost:{FILE_HTTP_PORT}/{html_file}",
+            )
+        else:
+            return TextContent(
+                type="text",
+                text="Mesh generated but HTML wrapper creation failed.",
+            )
     except subprocess.CalledProcessError as e:
         return TextContent(
             type="text",
@@ -372,4 +631,6 @@ async def airfoil_generate_mesh(
 
 
 if __name__ == "__main__":
+    # Use stdio mode only - FastMCP doesn't directly support SSE
+    # For HTTP support, you'd need to use the low-level MCP SDK
     mcp.run(transport="stdio")
