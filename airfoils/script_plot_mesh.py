@@ -64,13 +64,13 @@ if args.plot_all_views:
     # le
     renderView1.CameraPosition = [0.0, 0, 10.0]
     renderView1.CameraFocalPoint = [0.0, 0, 0.0]
-    renderView1.CameraParallelScale = 0.2
+    renderView1.CameraParallelScale = 0.1
     SaveScreenshot("plots/airfoil_mesh_le.png", renderView1, ImageResolution=[1200, 800])
 
     # te
     renderView1.CameraPosition = [1.0, 0, 10.0]
     renderView1.CameraFocalPoint = [1.0, 0, 0.0]
-    renderView1.CameraParallelScale = 0.2
+    renderView1.CameraParallelScale = 0.1
     SaveScreenshot("plots/airfoil_mesh_te.png", renderView1, ImageResolution=[1200, 800])
 else:
     # current camera placement for renderView1

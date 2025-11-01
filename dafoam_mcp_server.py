@@ -198,12 +198,13 @@ async def airfoil_view_flow_field(
 
 
 @mcp.tool()
-async def airfoil_view_residual(
+async def airfoil_view_convergence(
     log_file: str, start_time_cfd: int, end_time_cfd: int, start_time_adjoint: int, end_time_adjoint: int
 ):
     """
     Airfoil Module:
-        Plot the residual and function convergence based on the information from the log_file
+        Plot the cfd and adjoint (optional) residuals and function (such as CD, CL, and CM) convergence history
+        by parsing the information from the log_file
 
     Inputs:
         log_file:

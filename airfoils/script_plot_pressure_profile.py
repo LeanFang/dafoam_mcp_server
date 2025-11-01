@@ -129,10 +129,10 @@ lineChartView1.BottomAxisRangeMinimum = -0.05
 lineChartView1.LeftAxisUseCustomRange = 1
 
 # Properties modified on lineChartView1
-lineChartView1.LeftAxisRangeMinimum = 1.5
+lineChartView1.LeftAxisRangeMinimum = 2.0
 
 # Properties modified on lineChartView1
-lineChartView1.LeftAxisRangeMaximum = -1.5
+lineChartView1.LeftAxisRangeMaximum = -2.0
 
 # save screenshot
 SaveScreenshot("plots/airfoil_pressure_profile.png", lineChartView1, ImageResolution=[800, 600])
