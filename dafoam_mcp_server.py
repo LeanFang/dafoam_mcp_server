@@ -344,7 +344,12 @@ async def airfoil_run_optimization(
 
     try:
         # Run in non-blocking background mode
-        subprocess.Popen(["bash", "-c", bash_command])
+        subprocess.Popen(
+            ["bash", "-c", bash_command],
+            stdout=subprocess.DEVNULL,  # Don't let child write to our stdout
+            stderr=subprocess.DEVNULL,  # Don't let child write to our stderr
+            stdin=subprocess.DEVNULL,  # Don't let child read from our stdin
+        )
         return TextContent(
             type="text",
             text="Optimization started in the background. Progress is being written to log_optimization.txt. Use airfoil_check_run_status to check if it's finished.",
@@ -382,7 +387,12 @@ async def airfoil_run_cfd_simulation(
 
     try:
         # Run in non-blocking background mode
-        subprocess.Popen(["bash", "-c", bash_command])
+        subprocess.Popen(
+            ["bash", "-c", bash_command],
+            stdout=subprocess.DEVNULL,  # Don't let child write to our stdout
+            stderr=subprocess.DEVNULL,  # Don't let child write to our stderr
+            stdin=subprocess.DEVNULL,  # Don't let child read from our stdin
+        )
         return TextContent(
             type="text",
             text="CFD simulation started in the background. Progress is being written to log_cfd_simulation.txt. Use airfoil_check_run_status to check if it's finished.",
@@ -408,9 +418,7 @@ async def airfoil_view_flow_field(
         variable: which flow field variable to visualize. Options are "U": velocity, "T": temperature, "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
         frame: which frame to view. The frame is the time-step for cfd simulation or optimization iteration for optimization. Default: -1 (the last frame)
     Outputs:
-        Message indicating the status with HTML link
-        Success: airfoil_flow_field.png is successfully generated and wrapped in HTML!
-        Error: Error occurred!
+        Message indicating the status with HTML link. Must show the link in bold to users.
     """
 
     bash_command = (
@@ -464,9 +472,7 @@ async def airfoil_view_residual(
         start_time_adjoint: the adjoint start time index to plot. Default: 0
         end_time_adjoint: the adjoint end time index to plot. Default: -1 (last time step)
     Outputs:
-        Message indicating the status with HTML links
-        Success: Residual and function plots generated with HTML wrappers!
-        Error: Error occurred!
+        Message indicating the status with HTML links. Must show the link in bold to users.
     """
 
     bash_command = (
@@ -524,9 +530,7 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
         mach_number: The Mach number (Ma). We should use the same mach number set in the airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
         frame: which frame to view. The frame is the time-step for cfd simulation or optimization iteration for optimization. Default: -1 (the last frame)
     Outputs:
-        Message indicating the status with HTML link
-        Success: airfoil_pressure_profile.png is successfully generated and wrapped in HTML!
-        Error: Error occurred!
+        Message indicating the status with HTML link. Must show the link in bold to users.
     """
 
     bash_command = (
@@ -574,9 +578,7 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
         y_location: where to zoom in to view the airfoil mesh details in the y direction. Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
         zoom_in_scale: how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more. Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
     Outputs:
-        Message indicating the status with HTML link
-        Success: airfoil_mesh.png is successfully generated and wrapped in HTML!
-        Error: Error occurred!
+        Message indicating the status with HTML link. Must show the link in bold to users.
     """
 
     bash_command = (
@@ -626,9 +628,7 @@ async def airfoil_generate_mesh(
         n_ffd_points: the Number of FFD control points to change the airfoil geometry. Default: 10
         mach_number: the reference Mach number to estimate the near wall mesh size. Default: 0.1
     Outputs:
-        Message indicating the status with HTML link
-        Success: Mesh and visualization successfully generated with HTML wrapper!
-        Error: Error occurred!
+        Message indicating the status with HTML link. Must show the link in bold to users.
     """
     # Run DAFoam commands directly in this container with mpirun
     bash_command = (
