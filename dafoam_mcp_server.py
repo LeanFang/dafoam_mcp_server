@@ -91,7 +91,7 @@ def get_server_url():
     return urls
 
 
-def create_multi_image_html(image_files: list, titles: list, main_title: str = "Airfoil Visualization") -> str:
+def create_image_html(image_files: list, titles: list, main_title: str = "Airfoil Visualization") -> str:
     """
     Create an HTML wrapper for multiple images displayed side by side with embedded base64 images
 
@@ -470,13 +470,16 @@ async def airfoil_view_residual(
 
         # Create a single HTML with both images
         image_files = [
-            "image_airfoil_residual_cfd.png",
             "image_airfoil_function_cd.png",
             "image_airfoil_function_cl.png",
             "image_airfoil_function_cm.png",
+            "image_airfoil_residual_cfd.png",
         ]
-        image_titles = ["CFD Residual Convergence", "CD Convergence", "CL Convergence", "CM Convergence"]
-        combined_html = create_multi_image_html(image_files, image_titles, "Airfoil Convergence Analysis")
+        image_titles = ["CD Convergence", "CL Convergence", "CM Convergence", "CFD Residual Convergence"]
+        if log_file == "log_optimization.txt":
+            image_files.append("image_airfoil_residual_adjoint.png")
+            image_titles.append("Adjoint Residual Convergence")
+        combined_html = create_image_html(image_files, image_titles, "Airfoil Convergence Analysis")
 
         if combined_html:
             return TextContent(
@@ -524,7 +527,7 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
         )
 
         # Create HTML wrapper using multi-image function
-        html_file = create_multi_image_html(
+        html_file = create_image_html(
             ["image_airfoil_pressure_profile.png"], ["Airfoil Pressure Profile"], "Airfoil Pressure Distribution"
         )
 
@@ -574,7 +577,7 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
         )
 
         # Create HTML wrapper using multi-image function
-        html_file = create_multi_image_html(["image_airfoil_mesh.png"], ["Airfoil Mesh Visualization"], "Airfoil Mesh")
+        html_file = create_image_html(["image_airfoil_mesh.png"], ["Airfoil Mesh Visualization"], "Airfoil Mesh")
 
         if html_file:
             return TextContent(
@@ -628,7 +631,12 @@ async def airfoil_generate_mesh(
         f"dafoam_plot3d2tecplot.py FFD/FFD.xyz FFD/FFD.dat >> log_mesh.txt && "
         f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD/FFD.dat && '
         f"rm volumeMesh.xyz surfMesh.xyz && "
-        f"pvpython script_plot_mesh.py"
+        f"pvpython script_plot_mesh.py && "
+        f"mv image_airfoil_mesh.png image_airfoil_mesh_all.png && "
+        f"pvpython script_plot_mesh.py -x_location=0 -zoom_in_scale=0.25 && "
+        f"mv image_airfoil_mesh.png image_airfoil_mesh_le.png && "
+        f"pvpython script_plot_mesh.py -x_location=1 -zoom_in_scale=0.25 && "
+        f"mv image_airfoil_mesh.png image_airfoil_mesh_te.png"
     )
 
     try:
@@ -639,16 +647,20 @@ async def airfoil_generate_mesh(
         )
 
         # Create HTML wrapper using multi-image function
-        html_file = create_multi_image_html(
-            ["image_airfoil_mesh.png"],
-            [f"Airfoil Mesh - {airfoil_profile.upper()}"],
+        html_file = create_image_html(
+            ["image_airfoil_mesh_all.png", "image_airfoil_mesh_le.png", "image_airfoil_mesh_te.png"],
+            [
+                f"Airfoil Mesh - {airfoil_profile.upper()} All",
+                f"Airfoil Mesh - {airfoil_profile.upper()} Leading Edge",
+                f"Airfoil Mesh - {airfoil_profile.upper()} Trailing Edge",
+            ],
             f"Mesh Generation: {airfoil_profile.upper()}",
         )
 
         if html_file:
             return TextContent(
                 type="text",
-                text=f"✓ Mesh successfully generated for {airfoil_profile}!\n\nView the mesh: http://localhost:{FILE_HTTP_PORT}/{html_file}",
+                text=f"Mesh successfully generated for {airfoil_profile}!\n\nView the mesh: http://localhost:{FILE_HTTP_PORT}/{html_file}",
             )
         else:
             return TextContent(
