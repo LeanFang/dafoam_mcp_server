@@ -6,7 +6,6 @@ import asyncio
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import threading
 import logging
-import socket
 import time
 
 # Suppress all logging to stdout/stderr before MCP starts
@@ -453,19 +452,6 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         pass
 
 
-def get_local_ip():
-    """Get the local IP address of the machine"""
-    try:
-        # Create a socket to get the local IP
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        local_ip = s.getsockname()[0]
-        s.close()
-        return local_ip
-    except Exception:
-        return "127.0.0.1"
-
-
 def start_http_server():
     """Start HTTP server in background thread"""
     global http_server, server_started
@@ -484,19 +470,6 @@ def start_http_server():
         with open(f"{airfoil_path}/plots/http_server_error.txt", "w") as f:
             f.write(f"HTTP Server failed to start: {str(e)}\n")
         server_started = False
-
-
-def get_server_url():
-    """Get the appropriate server URL based on what's available"""
-    local_ip = get_local_ip()
-
-    # Return multiple URL options for user to try
-    urls = [
-        f"http://localhost:{FILE_HTTP_PORT}",
-        f"http://127.0.0.1:{FILE_HTTP_PORT}",
-        f"http://{local_ip}:{FILE_HTTP_PORT}",
-    ]
-    return urls
 
 
 def create_image_html(image_files: list, titles: list, html_filename: str) -> str:
@@ -542,24 +515,6 @@ def create_image_html(image_files: list, titles: list, html_filename: str) -> st
             <div class="image-info">
                 <p>Image: {img_info['filename']}</p>
             </div>
-        </div>
-        """
-
-    # Add server status information
-    server_status = ""
-    if server_started:
-        urls = get_server_url()
-        server_status = f"""
-        <div class="server-info">
-            <h3>Alternative Access URLs:</h3>
-            <p>If the main link doesn't work, try these:</p>
-            <ul>
-                {''.join([f'<li><a href="{url}" target="_blank">{url}</a></li>' for url in urls])}
-            </ul>
-            <p style="font-size: 12px; color: #666; margin-top: 10px;">
-                Note: Images are embedded in this HTML file and don't require server access.
-                You can save this HTML file and open it offline.
-            </p>
         </div>
         """
 
@@ -667,7 +622,6 @@ def create_image_html(image_files: list, titles: list, html_filename: str) -> st
     <div class="main-container">
         <h1>{html_filename}</h1>
         {image_sections}
-        {server_status}
     </div>
 </body>
 </html>"""
