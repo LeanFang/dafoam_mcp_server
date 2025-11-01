@@ -1,10 +1,5 @@
-"""
-Sample usage script showing some use cases, and how the API should work.
-"""
-
 from prefoil import Airfoil, sampling
 from prefoil.utils import readCoordFile
-import matplotlib.pyplot as plt
 from pyhyp import pyHyp
 import argparse
 import numpy as np
@@ -39,7 +34,10 @@ cleanup, and then sample it with a particular distribution.
 """
 # Read the Coordinate file
 filename = "./profiles/" + airfoil_profile.lower() + ".dat"
-coords = readCoordFile(filename)
+try:
+    coords = readCoordFile(filename)
+except Exception:
+    coords = readCoordFile(filename, headerlines=1)
 airfoil = Airfoil(coords)
 airfoil.makeBluntTE(xCut=0.99)
 coords = airfoil.getSampledPts(

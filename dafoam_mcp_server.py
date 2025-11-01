@@ -7,6 +7,8 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 import threading
 import logging
 import time
+import urllib.request
+import os
 
 # Suppress all logging to stdout/stderr before MCP starts
 logging.basicConfig(level=logging.CRITICAL)
@@ -373,6 +375,26 @@ async def airfoil_generate_mesh(
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
+
+    # first check if the airfoil exists in the profiles folder
+    # if not, we need to download it from the UIUC airfoil database
+    profile_file_name = os.path.join(airfoil_path, "profiles", airfoil_profile.lower() + ".dat")
+    download_message = ""
+    if not os.path.exists(profile_file_name):
+        logging.info(f"Downloading the {airfoil_profile} airfoil profile from the UIUC database!")
+        download_status = download_airfoil_from_uiuc(airfoil_profile, profile_file_name)
+        if download_status:
+            logging.info("Download completed!")
+            download_message = (
+                f"The {airfoil_profile} airfoil profile is not found in the profiles folder "
+                "and has been downloaded from the UIUC database! \n"
+            )
+        else:
+            return (
+                f"Error: the {airfoil_profile} airfoil profile is not found in the profiles folder "
+                "and it could not be downloaded from the UIUC database either! \n"
+            )
+
     # Run DAFoam commands directly in this container with mpirun
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
@@ -414,8 +436,9 @@ async def airfoil_generate_mesh(
         )
 
         return (
+            download_message,
             "Mesh successfully generated for {airfoil_profile}!\n\n"
-            f"View the mesh: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
+            f"View the mesh: http://localhost:{FILE_HTTP_PORT}/{html_filename}",
         )
 
     except subprocess.CalledProcessError as e:
@@ -631,6 +654,36 @@ def create_image_html(image_files: list, titles: list, html_filename: str) -> st
 
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
+
+
+def download_airfoil_from_uiuc(airfoil_name, save_path):
+    """
+    Download airfoil coordinates from UIUC Airfoil Database
+
+    Inputs:
+        airfoil_name:
+            Name of the airfoil (e.g., 'naca4412')
+        save_path:
+            Path where to save the downloaded file
+
+    Returns:
+        True if download successful, False otherwise
+    """
+    base_url = "https://m-selig.ae.illinois.edu/ads/coord/"
+    url = f"{base_url}{airfoil_name.lower()}.dat"
+
+    try:
+        # Download the file
+        with urllib.request.urlopen(url, timeout=10) as response:
+            content = response.read()
+
+        # Save to file
+        with open(save_path, "wb") as f:
+            f.write(content)
+        return True
+
+    except Exception as e:
+        return False
 
 
 # HTTP server configuration for file serving
