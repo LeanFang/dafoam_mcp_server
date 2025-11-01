@@ -25,278 +25,12 @@ http_server = None
 server_started = False
 
 
-# helper functions
-def check_run_status():
-    """
-    Check whether the cfd simulation or optimization finished
-
-    Inputs:
-        None
-    Outputs:
-        finished: 1 = the run finishes. 0 = the run does not finish
-    """
-
-    file_path = f"{airfoil_path}/.dafoam_run_finished"
-    path = Path(file_path).expanduser()
-
-    if path.exists():
-        return 1
-    else:
-        return 0
-
-
-class CustomHTTPHandler(SimpleHTTPRequestHandler):
-    """Custom HTTP handler to serve files from airfoil_path"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=airfoil_path + "/plots/", **kwargs)
-
-    def log_message(self, format, *args):
-        """Suppress HTTP server logs"""
-        pass
-
-
-def get_local_ip():
-    """Get the local IP address of the machine"""
-    try:
-        # Create a socket to get the local IP
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        local_ip = s.getsockname()[0]
-        s.close()
-        return local_ip
-    except Exception:
-        return "127.0.0.1"
-
-
-def start_http_server():
-    """Start HTTP server in background thread"""
-    global http_server, server_started
-    try:
-        # Try binding to 0.0.0.0 first, fallback to 127.0.0.1
-        try:
-            http_server = HTTPServer(("0.0.0.0", FILE_HTTP_PORT), CustomHTTPHandler)
-        except OSError:
-            # If 0.0.0.0 fails (common on some Windows configurations), try 127.0.0.1
-            http_server = HTTPServer(("127.0.0.1", FILE_HTTP_PORT), CustomHTTPHandler)
-
-        server_started = True
-        http_server.serve_forever()
-    except Exception as e:
-        # Log error to a file for debugging
-        with open(f"{airfoil_path}/plots/http_server_error.txt", "w") as f:
-            f.write(f"HTTP Server failed to start: {str(e)}\n")
-        server_started = False
-
-
 # Start HTTP server in daemon thread when module loads
 server_thread = threading.Thread(target=start_http_server, daemon=True)
 server_thread.start()
 
 # Give the server a moment to start
 time.sleep(0.5)
-
-
-def get_server_url():
-    """Get the appropriate server URL based on what's available"""
-    local_ip = get_local_ip()
-
-    # Return multiple URL options for user to try
-    urls = [
-        f"http://localhost:{FILE_HTTP_PORT}",
-        f"http://127.0.0.1:{FILE_HTTP_PORT}",
-        f"http://{local_ip}:{FILE_HTTP_PORT}",
-    ]
-    return urls
-
-
-def create_image_html(image_files: list, titles: list, main_title: str = "Airfoil Visualization") -> str:
-    """
-    Create an HTML wrapper for multiple images displayed side by side with embedded base64 images
-
-    Inputs:
-        image_files: List of image filenames (e.g., ['image1.png', 'image2.png'])
-        titles: List of titles for each image
-        main_title: Main title for the HTML page
-    Outputs:
-        html_filename: Name of the created HTML file
-    """
-    if len(image_files) != len(titles):
-        return None
-
-    # Read all images and convert to base64
-    image_data_list = []
-    for i, image_filename in enumerate(image_files):
-        image_path = Path(airfoil_path) / image_filename
-        if not image_path.exists():
-            continue
-
-        with open(image_path, "rb") as img_file:
-            img_data = base64.b64encode(img_file.read()).decode("utf-8")
-
-        # Determine image type
-        img_extension = image_path.suffix.lower()
-        mime_type = "image/png" if img_extension == ".png" else "image/jpeg"
-
-        image_data_list.append({"data": img_data, "mime": mime_type, "filename": image_filename, "title": titles[i]})
-
-    if not image_data_list:
-        return None
-
-    # Create image sections HTML
-    image_sections = ""
-    for img_info in image_data_list:
-        image_sections += f"""
-        <div class="image-section">
-            <h2>{img_info['title']}</h2>
-            <div class="image-container">
-                <img src="data:{img_info['mime']};base64,{img_info['data']}" alt="{img_info['title']}">
-            </div>
-            <div class="image-info">
-                <p>Image: {img_info['filename']}</p>
-                <a href="data:{img_info['mime']};base64,{img_info['data']}" download="{img_info['filename']}" class="download-btn">
-                    Download Image
-                </a>
-            </div>
-        </div>
-        """
-
-    # Add server status information
-    server_status = ""
-    if server_started:
-        urls = get_server_url()
-        server_status = f"""
-        <div class="server-info">
-            <h3>Alternative Access URLs:</h3>
-            <p>If the main link doesn't work, try these:</p>
-            <ul>
-                {''.join([f'<li><a href="{url}" target="_blank">{url}</a></li>' for url in urls])}
-            </ul>
-            <p style="font-size: 12px; color: #666; margin-top: 10px;">
-                Note: Images are embedded in this HTML file and don't require server access. 
-                You can save this HTML file and open it offline.
-            </p>
-        </div>
-        """
-
-    # Create HTML content
-    html_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{main_title}</title>
-    <style>
-        body {{
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }}
-        .main-container {{
-            max-width: 1400px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }}
-        h1 {{
-            color: #333;
-            text-align: center;
-            margin-bottom: 40px;
-            font-size: 28px;
-        }}
-        h2 {{
-            color: #444;
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 20px;
-        }}
-        h3 {{
-            color: #555;
-            font-size: 16px;
-            margin-top: 20px;
-        }}
-        .image-section {{
-            margin-bottom: 50px;
-            padding-bottom: 30px;
-            border-bottom: 2px solid #eee;
-        }}
-        .image-section:last-child {{
-            border-bottom: none;
-        }}
-        .image-container {{
-            text-align: center;
-            margin: 20px 0;
-        }}
-        img {{
-            max-width: 100%;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }}
-        .image-info {{
-            text-align: center;
-            color: #666;
-            margin-top: 20px;
-            font-size: 14px;
-        }}
-        .download-btn {{
-            display: inline-block;
-            margin-top: 10px;
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }}
-        .download-btn:hover {{
-            background-color: #45a049;
-        }}
-        .server-info {{
-            background-color: #f0f8ff;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 30px;
-            border-left: 4px solid #4CAF50;
-        }}
-        .server-info ul {{
-            list-style-type: none;
-            padding-left: 0;
-        }}
-        .server-info li {{
-            margin: 8px 0;
-        }}
-        .server-info a {{
-            color: #0066cc;
-            text-decoration: none;
-        }}
-        .server-info a:hover {{
-            text-decoration: underline;
-        }}
-    </style>
-</head>
-<body>
-    <div class="main-container">
-        <h1>{main_title}</h1>
-        {image_sections}
-        {server_status}
-    </div>
-</body>
-</html>"""
-
-    # Save HTML file - use first image name or generic name
-    html_filename = "airfoil_plots.html"
-
-    html_path = Path(airfoil_path) / "plots" / html_filename
-
-    with open(html_path, "w", encoding="utf-8") as f:
-        f.write(html_content)
-
-    return html_filename
 
 
 @mcp.tool()
@@ -688,6 +422,272 @@ async def airfoil_generate_mesh(
             type="text",
             text=f"Error occurred!\n\nStderr:\n{e.stderr}",
         )
+
+
+# helper functions
+def check_run_status():
+    """
+    Check whether the cfd simulation or optimization finished
+
+    Inputs:
+        None
+    Outputs:
+        finished: 1 = the run finishes. 0 = the run does not finish
+    """
+
+    file_path = f"{airfoil_path}/.dafoam_run_finished"
+    path = Path(file_path).expanduser()
+
+    if path.exists():
+        return 1
+    else:
+        return 0
+
+
+class CustomHTTPHandler(SimpleHTTPRequestHandler):
+    """Custom HTTP handler to serve files from airfoil_path"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=airfoil_path + "/plots/", **kwargs)
+
+    def log_message(self, format, *args):
+        """Suppress HTTP server logs"""
+        pass
+
+
+def get_local_ip():
+    """Get the local IP address of the machine"""
+    try:
+        # Create a socket to get the local IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except Exception:
+        return "127.0.0.1"
+
+
+def start_http_server():
+    """Start HTTP server in background thread"""
+    global http_server, server_started
+    try:
+        # Try binding to 0.0.0.0 first, fallback to 127.0.0.1
+        try:
+            http_server = HTTPServer(("0.0.0.0", FILE_HTTP_PORT), CustomHTTPHandler)
+        except OSError:
+            # If 0.0.0.0 fails (common on some Windows configurations), try 127.0.0.1
+            http_server = HTTPServer(("127.0.0.1", FILE_HTTP_PORT), CustomHTTPHandler)
+
+        server_started = True
+        http_server.serve_forever()
+    except Exception as e:
+        # Log error to a file for debugging
+        with open(f"{airfoil_path}/plots/http_server_error.txt", "w") as f:
+            f.write(f"HTTP Server failed to start: {str(e)}\n")
+        server_started = False
+
+
+def get_server_url():
+    """Get the appropriate server URL based on what's available"""
+    local_ip = get_local_ip()
+
+    # Return multiple URL options for user to try
+    urls = [
+        f"http://localhost:{FILE_HTTP_PORT}",
+        f"http://127.0.0.1:{FILE_HTTP_PORT}",
+        f"http://{local_ip}:{FILE_HTTP_PORT}",
+    ]
+    return urls
+
+
+def create_image_html(image_files: list, titles: list, main_title: str = "Airfoil Visualization") -> str:
+    """
+    Create an HTML wrapper for multiple images displayed side by side with embedded base64 images
+
+    Inputs:
+        image_files: List of image filenames (e.g., ['image1.png', 'image2.png'])
+        titles: List of titles for each image
+        main_title: Main title for the HTML page
+    Outputs:
+        html_filename: Name of the created HTML file
+    """
+    if len(image_files) != len(titles):
+        return None
+
+    # Read all images and convert to base64
+    image_data_list = []
+    for i, image_filename in enumerate(image_files):
+        image_path = Path(airfoil_path) / image_filename
+        if not image_path.exists():
+            continue
+
+        with open(image_path, "rb") as img_file:
+            img_data = base64.b64encode(img_file.read()).decode("utf-8")
+
+        # Determine image type
+        img_extension = image_path.suffix.lower()
+        mime_type = "image/png" if img_extension == ".png" else "image/jpeg"
+
+        image_data_list.append({"data": img_data, "mime": mime_type, "filename": image_filename, "title": titles[i]})
+
+    if not image_data_list:
+        return None
+
+    # Create image sections HTML
+    image_sections = ""
+    for img_info in image_data_list:
+        image_sections += f"""
+        <div class="image-section">
+            <h2>{img_info['title']}</h2>
+            <div class="image-container">
+                <img src="data:{img_info['mime']};base64,{img_info['data']}" alt="{img_info['title']}">
+            </div>
+            <div class="image-info">
+                <p>Image: {img_info['filename']}</p>
+                <a href="data:{img_info['mime']};base64,{img_info['data']}" download="{img_info['filename']}" class="download-btn">
+                    Download Image
+                </a>
+            </div>
+        </div>
+        """
+
+    # Add server status information
+    server_status = ""
+    if server_started:
+        urls = get_server_url()
+        server_status = f"""
+        <div class="server-info">
+            <h3>Alternative Access URLs:</h3>
+            <p>If the main link doesn't work, try these:</p>
+            <ul>
+                {''.join([f'<li><a href="{url}" target="_blank">{url}</a></li>' for url in urls])}
+            </ul>
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                Note: Images are embedded in this HTML file and don't require server access. 
+                You can save this HTML file and open it offline.
+            </p>
+        </div>
+        """
+
+    # Create HTML content
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{main_title}</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }}
+        .main-container {{
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        h1 {{
+            color: #333;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 28px;
+        }}
+        h2 {{
+            color: #444;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }}
+        h3 {{
+            color: #555;
+            font-size: 16px;
+            margin-top: 20px;
+        }}
+        .image-section {{
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }}
+        .image-section:last-child {{
+            border-bottom: none;
+        }}
+        .image-container {{
+            text-align: center;
+            margin: 20px 0;
+        }}
+        img {{
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }}
+        .image-info {{
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+            font-size: 14px;
+        }}
+        .download-btn {{
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }}
+        .download-btn:hover {{
+            background-color: #45a049;
+        }}
+        .server-info {{
+            background-color: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+            border-left: 4px solid #4CAF50;
+        }}
+        .server-info ul {{
+            list-style-type: none;
+            padding-left: 0;
+        }}
+        .server-info li {{
+            margin: 8px 0;
+        }}
+        .server-info a {{
+            color: #0066cc;
+            text-decoration: none;
+        }}
+        .server-info a:hover {{
+            text-decoration: underline;
+        }}
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <h1>{main_title}</h1>
+        {image_sections}
+        {server_status}
+    </div>
+</body>
+</html>"""
+
+    # Save HTML file - use first image name or generic name
+    html_filename = "airfoil_plots.html"
+
+    html_path = Path(airfoil_path) / "plots" / html_filename
+
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    return html_filename
 
 
 if __name__ == "__main__":
