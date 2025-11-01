@@ -1,7 +1,6 @@
 from mcp.server.fastmcp import FastMCP
 import base64
 from pathlib import Path
-from mcp.types import TextContent
 import subprocess
 import asyncio
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -27,7 +26,9 @@ async def airfoil_check_run_status():
     Inputs:
         None
     Outputs:
-        finished: 1 = the run finishes. 0 = the run does not finish
+        finished:
+            1 = the run finishes.
+            0 = the run does not finish
     """
 
     return check_run_status()
@@ -38,19 +39,28 @@ async def airfoil_run_optimization(
     cpu_cores: int, angle_of_attack: float, mach_number: float, reynolds_number: float, lift_constraint: float
 ):
     """
-    Airfoil module: Run CFD-based aerodynamic optimization.
-    Objective: drag coefficient.
-    Design variables: airfoil shape and angle of attack.
-    Constraints: lift, thickness, volume, and leading edge radius
+    Airfoil module:
+        Run CFD-based aerodynamic optimization.
+        Objective: drag coefficient.
+        Design variables: airfoil shape and angle of attack.
+        Constraints: lift, thickness, volume, and leading edge radius
 
     Inputs:
-        cpu_cores: The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells, and use one more core for every 10,000 more cells. Default: 1
-        angle_of_attack: The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
-        mach_number: The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. We should use the same mach number set in the airfoil_generate_mesh call. Default: 0.1
-        reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number. Default: 1000000
-        lift_constraint: The lift constraint. Default: 0.5
+        cpu_cores:
+            The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells,
+            and use one more core for every 10,000 more cells. Default: 1
+        angle_of_attack:
+            The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
+        mach_number:
+            The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions.
+            We should use the same mach number set in the airfoil_generate_mesh call. Default: 0.1
+        reynolds_number:
+            The Reynolds number, users can also use Re to denote the Reynolds number. Default: 1000000
+        lift_constraint:
+            The lift constraint. Default: 0.5
     Outputs:
-        A message saying that the optimization is running in the background and the progress is written to log_optimization.txt
+        A message saying that the optimization is running in the background
+        and the progress is written to log_optimization.txt
     """
 
     bash_command = (
@@ -70,15 +80,13 @@ async def airfoil_run_optimization(
             stderr=subprocess.DEVNULL,  # Don't let child write to our stderr
             stdin=subprocess.DEVNULL,  # Don't let child read from our stdin
         )
-        return TextContent(
-            type="text",
-            text="Optimization started in the background. Progress is being written to log_optimization.txt. Use airfoil_check_run_status to check if it's finished.",
+        return (
+            "Optimization started in the background. "
+            "Progress is being written to log_optimization.txt."
+            "Use airfoil_check_run_status to check if it's finished."
         )
     except Exception as e:
-        return TextContent(
-            type="text",
-            text=f"Error starting optimization: {str(e)}",
-        )
+        return f"Error starting optimization: {str(e)}"
 
 
 @mcp.tool()
@@ -86,15 +94,24 @@ async def airfoil_run_cfd_simulation(
     cpu_cores: int, angle_of_attack: float, mach_number: float, reynolds_number: float
 ):
     """
-    Airfoil module: Run CFD simulation/analysis to compute airfoil flow fields such as velocity, pressure, and temperature.
+    Airfoil module:
+        Run CFD simulation/analysis to compute airfoil flow fields,
+        such as velocity, pressure, and temperature.
 
     Inputs:
-        cpu_cores: The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells, and use one more core for every 10,000 more cells. Default: 1
-        angle_of_attack: The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
-        mach_number: The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. We should use the same mach number set in the airfoil_generate_mesh call. Default: 0.1
-        reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number. Default: 1000000
+        cpu_cores:
+            The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells,
+            and use one more core for every 10,000 more cells. Default: 1
+        angle_of_attack:
+            The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
+        mach_number:
+            The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions.
+            We should use the same mach number set in the airfoil_generate_mesh call. Default: 0.1
+        reynolds_number:
+            The Reynolds number, users can also use Re to denote the Reynolds number. Default: 1000000
     Outputs:
-        A message saying that the cfd simulation is running in the background and the progress is written to log_cfd_simulation.txt
+        A message saying that the cfd simulation is running in the background
+        and the progress is written to log_cfd_simulation.txt
     """
 
     bash_command = (
@@ -102,7 +119,9 @@ async def airfoil_run_cfd_simulation(
         f"cd {airfoil_path} && "
         f"rm -rf .dafoam_run_finished && "
         f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py "
-        f"-angle_of_attack={angle_of_attack} -mach_number={mach_number} -reynolds_number={reynolds_number} > log_cfd_simulation.txt 2>&1"
+        f"-angle_of_attack={angle_of_attack} "
+        f"-mach_number={mach_number} "
+        f"-reynolds_number={reynolds_number} > log_cfd_simulation.txt 2>&1"
     )
 
     try:
@@ -113,15 +132,14 @@ async def airfoil_run_cfd_simulation(
             stderr=subprocess.DEVNULL,  # Don't let child write to our stderr
             stdin=subprocess.DEVNULL,  # Don't let child read from our stdin
         )
-        return TextContent(
-            type="text",
-            text="CFD simulation started in the background. Progress is being written to log_cfd_simulation.txt. Use airfoil_check_run_status to check if it's finished.",
+        return (
+            "CFD simulation started in the background. "
+            "Progress is being written to log_cfd_simulation.txt. "
+            "Use airfoil_check_run_status to check if it's finished."
         )
+
     except Exception as e:
-        return TextContent(
-            type="text",
-            text=f"Error starting CFD simulation: {str(e)}",
-        )
+        return f"Error starting CFD simulation: {str(e)}"
 
 
 @mcp.tool()
@@ -129,14 +147,26 @@ async def airfoil_view_flow_field(
     x_location: float, y_location: float, zoom_in_scale: float, variable: str, frame: int
 ):
     """
-    Airfoil module: Allow users to view the details of a selected flow field variable. The airfoil CFD simulation must have been done.
+    Airfoil module:
+        Allow users to view the details of a selected flow field variable.
+        The airfoil CFD simulation must have been done.
 
     Inputs:
-        x_location: where to zoom in to view the airfoil mesh details in the x direction. Leading edge: x_location=0, mid chord: x_location=0.5, and trailing edge: x_location=1. Default: 0.5
-        y_location: where to zoom in to view the airfoil mesh details in the y direction. Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
-        zoom_in_scale: how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more. Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
-        variable: which flow field variable to visualize. Options are "U": velocity, "T": temperature, "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
-        frame: which frame to view. The frame is the time-step for cfd simulation or optimization iteration for optimization. Default: -1 (the last frame)
+        x_location:
+            where to zoom in to view the airfoil mesh details in the x direction.
+            Leading edge: x_location=0, mid chord: x_location=0.5, and trailing edge: x_location=1. Default: 0.5
+        y_location:
+            where to zoom in to view the airfoil mesh details in the y direction.
+            Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
+        zoom_in_scale:
+            how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more.
+            Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
+        variable:
+            which flow field variable to visualize. Options are "U": velocity, "T": temperature,
+            "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
+        frame:
+            which frame to view. The frame is the time-step for cfd simulation or
+            optimization iteration for optimization. Default: -1 (the last frame)
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
@@ -144,7 +174,8 @@ async def airfoil_view_flow_field(
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"pvpython script_plot_flow_field.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale} -variable={variable} -frame={frame}"
+        f"pvpython script_plot_flow_field.py -x_location={x_location} -y_location={y_location} "
+        f"-zoom_in_scale={zoom_in_scale} -variable={variable} -frame={frame}"
     )
 
     try:
@@ -155,27 +186,16 @@ async def airfoil_view_flow_field(
         )
 
         # Create a single HTML with both images
-        image_files = [
-            "plots/airfoil_flow_field.png",
-        ]
-        image_titles = [f"{variable } Field"]
-        combined_html = create_image_html(image_files, image_titles, "Airfoil Flow Field")
+        html_filename = "airfoil_flow_field.html"
+        create_image_html(["plots/airfoil_flow_field.png"], [f"{variable } Field"], html_filename)
 
-        if combined_html:
-            return TextContent(
-                type="text",
-                text=f"Flow field plots successfully generated!\n\nView convergence: http://localhost:{FILE_HTTP_PORT}/{combined_html}",
-            )
-        else:
-            return TextContent(
-                type="text",
-                text="Plots generated but HTML wrapper creation failed.",
-            )
-    except subprocess.CalledProcessError as e:
-        return TextContent(
-            type="text",
-            text=f"Error occurred!\n\nStderr:\n{e.stderr}",
+        return (
+            "Flow field plots successfully generated!\n\n"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
         )
+
+    except subprocess.CalledProcessError as e:
+        return f"Error occurred!\n\nStderr:\n{e.stderr}"
 
 
 @mcp.tool()
@@ -183,14 +203,20 @@ async def airfoil_view_residual(
     log_file: str, start_time_cfd: int, end_time_cfd: int, start_time_adjoint: int, end_time_adjoint: int
 ):
     """
-    Plot the residual and function convergence based on the information from the log_file
+    Airfoil Module:
+        Plot the residual and function convergence based on the information from the log_file
 
     Inputs:
-        log_file: log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
-        start_time_cfd: the cfd start time index to plot. Default: 0
-        end_time_cfd: the cfd end time index to plot. Default: -1 (last time step)
-        start_time_adjoint: the adjoint start time index to plot. Default: 0
-        end_time_adjoint: the adjoint end time index to plot. Default: -1 (last time step)
+        log_file:
+            log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
+        start_time_cfd:
+            the cfd start time index to plot. Default: 0
+        end_time_cfd:
+            the cfd end time index to plot. Default: -1 (last time step)
+        start_time_adjoint:
+            the adjoint start time index to plot. Default: 0
+        end_time_adjoint:
+            the adjoint end time index to plot. Default: -1 (last time step)
     Outputs:
         Message indicating the status with HTML links. Must show the link in bold to users.
     """
@@ -198,9 +224,10 @@ async def airfoil_view_residual(
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"pvpython script_plot_residual.py -log_file={log_file} -start_time_cfd={start_time_cfd} -end_time_cfd={end_time_cfd} "
+        f"pvpython script_plot_residual.py "
+        f"-log_file={log_file} -start_time_cfd={start_time_cfd} -end_time_cfd={end_time_cfd} "
         f"-start_time_adjoint={start_time_adjoint} -end_time_adjoint={end_time_adjoint} && "
-        f"pvpython script_plot_function.py -log_file={log_file} -start_time={start_time_cfd} -end_time={end_time_cfd} "
+        f"pvpython script_plot_function.py -log_file={log_file} -start_time={start_time_cfd} -end_time={end_time_cfd}"
     )
 
     try:
@@ -211,6 +238,7 @@ async def airfoil_view_residual(
         )
 
         # Create a single HTML with both images
+        html_filename = "airfoil_convergence.html"
         image_files = [
             "plots/airfoil_function_cd.png",
             "plots/airfoil_function_cl.png",
@@ -221,34 +249,30 @@ async def airfoil_view_residual(
         if log_file == "log_optimization.txt":
             image_files.append("plots/airfoil_residual_adjoint.png")
             image_titles.append("Adjoint Residual Convergence")
-        combined_html = create_image_html(image_files, image_titles, "Airfoil Convergence Analysis")
+        create_image_html(image_files, image_titles, html_filename)
 
-        if combined_html:
-            return TextContent(
-                type="text",
-                text=f"Residual and function plots successfully generated!\n\nView convergence: http://localhost:{FILE_HTTP_PORT}/{combined_html}",
-            )
-        else:
-            return TextContent(
-                type="text",
-                text="Plots generated but HTML wrapper creation failed.",
-            )
+        return (
+            "Residual and function plots successfully generated!\n\n"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
+        )
 
     except subprocess.CalledProcessError as e:
-        return TextContent(
-            type="text",
-            text=f"Error occurred!\n\nStderr:\n{e.stderr}",
-        )
+        return f"Error occurred!\n\nStderr:\n{e.stderr}"
 
 
 @mcp.tool()
 async def airfoil_view_pressure_profile(mach_number: float, frame: int):
     """
-    Airfoil module: Plot the pressure profile (distribution) on the airfoil surface
+    Airfoil module:
+        Plot the pressure profile (distribution) on the airfoil surface
 
     Inputs:
-        mach_number: The Mach number (Ma). We should use the same mach number set in the airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
-        frame: which frame to view. The frame is the time-step for cfd simulation or optimization iteration for optimization. Default: -1 (the last frame)
+        mach_number:
+            The Mach number (Ma). We should use the same mach number set in the
+            airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
+        frame:
+            which frame to view. The frame is the time-step for cfd simulation or
+            optimization iteration for optimization. Default: -1 (the last frame)
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
@@ -267,36 +291,34 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
         )
 
         # Create HTML wrapper using multi-image function
-        html_file = create_image_html(
-            ["plots/airfoil_pressure_profile.png"], ["Airfoil Pressure Profile"], "Airfoil Pressure Distribution"
+        html_filename = "airfoil_pressure_profile.html"
+        create_image_html(["plots/airfoil_pressure_profile.png"], ["Airfoil Pressure Profile"], html_filename)
+
+        return (
+            "Pressure profile successfully generated!\n\n"
+            f"View the result: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
         )
 
-        if html_file:
-            return TextContent(
-                type="text",
-                text=f"Pressure profile successfully generated!\n\nView the result: http://localhost:{FILE_HTTP_PORT}/{html_file}",
-            )
-        else:
-            return TextContent(
-                type="text",
-                text="Image generated but HTML wrapper creation failed.",
-            )
     except subprocess.CalledProcessError as e:
-        return TextContent(
-            type="text",
-            text=f"Error occurred!\n\nStderr:\n{e.stderr}",
-        )
+        return f"Error occurred!\n\nStderr:\n{e.stderr}"
 
 
 @mcp.tool()
 async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale: float):
     """
-    Airfoil module: Allow users to view detail airfoil meshes. The mesh must have been generated in airfoils
+    Airfoil module:
+        Allow users to view detail airfoil meshes. The mesh must have been generated in airfoils
 
     Inputs:
-        x_location: where to zoom in to view the airfoil mesh details in the x direction. Leading edge: x_location=0, mid chord: x_location=0.5, and trailing edge: x_location=1. Default: 0.5
-        y_location: where to zoom in to view the airfoil mesh details in the y direction. Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
-        zoom_in_scale: how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more. Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
+        x_location:
+            where to zoom in to view the airfoil mesh details in the x direction.
+            Leading edge: x_location=0, mid chord: x_location=0.5, and trailing edge: x_location=1. Default: 0.5
+        y_location:
+            where to zoom in to view the airfoil mesh details in the y direction.
+            Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
+        zoom_in_scale:
+            how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more.
+            Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
@@ -315,23 +337,16 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
         )
 
         # Create HTML wrapper using multi-image function
-        html_file = create_image_html(["plots/airfoil_mesh.png"], ["Airfoil Mesh Visualization"], "Airfoil Mesh")
+        html_filename = "airfoil_mesh.html"
+        create_image_html(["plots/airfoil_mesh.png"], ["Airfoil Mesh Visualization"], html_filename)
 
-        if html_file:
-            return TextContent(
-                type="text",
-                text=f"Mesh visualization successfully generated!\n\nView the result: http://localhost:{FILE_HTTP_PORT}/{html_file}",
-            )
-        else:
-            return TextContent(
-                type="text",
-                text="Image generated but HTML wrapper creation failed.",
-            )
-    except subprocess.CalledProcessError as e:
-        return TextContent(
-            type="text",
-            text=f"Error occurred!\n\nStderr:\n{e.stderr}",
+        return (
+            "Mesh visualization successfully generated!\n\n"
+            f"View the result: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
         )
+
+    except subprocess.CalledProcessError as e:
+        return f"Error occurred!\n\nStderr:\n{e.stderr}"
 
 
 @mcp.tool()
@@ -339,14 +354,22 @@ async def airfoil_generate_mesh(
     airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffd_points: int, mach_number: float
 ):
     """
-    Airfoil module: Generate the airfoil mesh. Call airfoil_view_mesh after airfoil_generate_mesh to plot the mesh image image_airfoil_mesh.png
+    Airfoil module:
+        Generate the airfoil mesh. Call airfoil_view_mesh after airfoil_generate_mesh
+        to plot the mesh image image_airfoil_mesh.png
 
     Inputs:
-        airfoil_profile: The name of the airfoil profile, such as rae2822 or naca0012 (no spaces and all lower case letters). Default: naca0012
-        mesh_cells: The number of mesh cells to generate. Default: 5000
-        y_plus: the normalized near wall mesh size to capture boundary layer. Default: 50
-        n_ffd_points: the Number of FFD control points to change the airfoil geometry. Default: 10
-        mach_number: the reference Mach number to estimate the near wall mesh size. Default: 0.1
+        airfoil_profile:
+            The name of the airfoil profile, such as rae2822 or naca0012 (no spaces and all lower case letters).
+            Default: naca0012
+        mesh_cells:
+            The number of mesh cells to generate. Default: 5000
+        y_plus:
+            the normalized near wall mesh size to capture boundary layer. Default: 50
+        n_ffd_points:
+            the Number of FFD control points to change the airfoil geometry. Default: 10
+        mach_number:
+            the reference Mach number to estimate the near wall mesh size. Default: 0.1
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
@@ -355,7 +378,8 @@ async def airfoil_generate_mesh(
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"./Allclean.sh && "
-        f"python script_generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} -y_plus={y_plus} -n_ffd_points={n_ffd_points} -mach_number={mach_number} > log_mesh.txt && "
+        f"python script_generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} "
+        f"-y_plus={y_plus} -n_ffd_points={n_ffd_points} -mach_number={mach_number} > log_mesh.txt && "
         f"plot3dToFoam -noBlank volumeMesh.xyz >> log_mesh.txt && "
         f"autoPatch 30 -overwrite >> log_mesh.txt && "
         f"createPatch -overwrite >> log_mesh.txt && "
@@ -367,12 +391,7 @@ async def airfoil_generate_mesh(
         f"dafoam_plot3d2tecplot.py FFD/FFD.xyz FFD/FFD.dat >> log_mesh.txt && "
         f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD/FFD.dat && '
         f"rm volumeMesh.xyz surfMesh.xyz && "
-        f"pvpython script_plot_mesh.py && "
-        f"mv plots/airfoil_mesh.png plots/airfoil_mesh_all.png && "
-        f"pvpython script_plot_mesh.py -x_location=0 -zoom_in_scale=0.25 && "
-        f"mv plots/airfoil_mesh.png plots/airfoil_mesh_le.png && "
-        f"pvpython script_plot_mesh.py -x_location=1 -zoom_in_scale=0.25 && "
-        f"mv plots/airfoil_mesh.png plots/airfoil_mesh_te.png"
+        f"pvpython script_plot_mesh.py -plot_all_views=1 "
     )
 
     try:
@@ -383,31 +402,24 @@ async def airfoil_generate_mesh(
         )
 
         # Create HTML wrapper using multi-image function
-        html_file = create_image_html(
-            ["plots/airfoil_mesh_all.png", "plots/airfoil_mesh_le.png", "plots/airfoil_mesh_te.png"],
+        html_filename = "airfoil_mesh_all_views.html"
+        create_image_html(
+            ["plots/airfoil_mesh_overview.png", "plots/airfoil_mesh_le.png", "plots/airfoil_mesh_te.png"],
             [
-                f"Airfoil Mesh - {airfoil_profile.upper()} All",
+                f"Airfoil Mesh - {airfoil_profile.upper()} Overview",
                 f"Airfoil Mesh - {airfoil_profile.upper()} Leading Edge",
                 f"Airfoil Mesh - {airfoil_profile.upper()} Trailing Edge",
             ],
-            f"Mesh Generation: {airfoil_profile.upper()}",
+            html_filename,
         )
 
-        if html_file:
-            return TextContent(
-                type="text",
-                text=f"Mesh successfully generated for {airfoil_profile}!\n\nView the mesh: http://localhost:{FILE_HTTP_PORT}/{html_file}",
-            )
-        else:
-            return TextContent(
-                type="text",
-                text="Mesh generated but HTML wrapper creation failed.",
-            )
-    except subprocess.CalledProcessError as e:
-        return TextContent(
-            type="text",
-            text=f"Error occurred!\n\nStderr:\n{e.stderr}",
+        return (
+            "Mesh successfully generated for {airfoil_profile}!\n\n"
+            f"View the mesh: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
         )
+
+    except subprocess.CalledProcessError as e:
+        return f"Error occurred!\n\nStderr:\n{e.stderr}"
 
 
 # helper functions
@@ -487,16 +499,14 @@ def get_server_url():
     return urls
 
 
-def create_image_html(image_files: list, titles: list, main_title: str = "Airfoil Visualization") -> str:
+def create_image_html(image_files: list, titles: list, html_filename: str) -> str:
     """
     Create an HTML wrapper for multiple images displayed side by side with embedded base64 images
 
     Inputs:
         image_files: List of image filenames (e.g., ['image1.png', 'image2.png'])
         titles: List of titles for each image
-        main_title: Main title for the HTML page
-    Outputs:
-        html_filename: Name of the created HTML file
+        html_filename: name of the generated html file
     """
     if len(image_files) != len(titles):
         return None
@@ -531,9 +541,6 @@ def create_image_html(image_files: list, titles: list, main_title: str = "Airfoi
             </div>
             <div class="image-info">
                 <p>Image: {img_info['filename']}</p>
-                <a href="data:{img_info['mime']};base64,{img_info['data']}" download="{img_info['filename']}" class="download-btn">
-                    Download Image
-                </a>
             </div>
         </div>
         """
@@ -562,7 +569,7 @@ def create_image_html(image_files: list, titles: list, main_title: str = "Airfoi
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{main_title}</title>
+    <title>{html_filename}</title>
     <style>
         body {{
             font-family: Arial, sans-serif;
@@ -658,22 +665,17 @@ def create_image_html(image_files: list, titles: list, main_title: str = "Airfoi
 </head>
 <body>
     <div class="main-container">
-        <h1>{main_title}</h1>
+        <h1>{html_filename}</h1>
         {image_sections}
         {server_status}
     </div>
 </body>
 </html>"""
 
-    # Save HTML file - use first image name or generic name
-    html_filename = "airfoil_plots.html"
-
     html_path = Path(airfoil_path) / "plots" / html_filename
 
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
-
-    return html_filename
 
 
 # HTTP server configuration for file serving

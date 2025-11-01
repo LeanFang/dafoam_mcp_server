@@ -1,16 +1,17 @@
 # trace generated using paraview version 5.9.1
 
-#### import the simple module from the paraview
+# import the simple module from the paraview
 from paraview.simple import *
 import argparse
 
-#### disable automatic camera reset on 'Show'
+# disable automatic camera reset on 'Show'
 paraview.simple._DisableFirstRenderCameraReset()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-x_location", help="the camera x_location in the x direction", type=float, default=0.5)
 parser.add_argument("-y_location", help="the camera y_location in the y direction", type=float, default=0.0)
 parser.add_argument("-zoom_in_scale", help="zoom in level", type=float, default=0.5)
+parser.add_argument("-plot_all_views", help="whether to plot all views", type=int, default=0)
 args = parser.parse_args()
 
 # create a new 'OpenFOAMReader'
@@ -26,15 +27,11 @@ paraviewfoamDisplay = Show(paraviewfoam, renderView1, "UnstructuredGridRepresent
 paraviewfoamDisplay.Representation = "Surface"
 
 # Properties modified on paraviewfoamDisplay
-#paraviewfoamDisplay.Ambient = 0.5
+# paraviewfoamDisplay.Ambient = 0.5
 
 # Properties modified on renderView1
 renderView1.CameraParallelProjection = 1
 
-# current camera placement for renderView1
-renderView1.CameraPosition = [args.x_location, args.y_location, 10.0]
-renderView1.CameraFocalPoint = [args.x_location, args.y_location, 0.0]
-renderView1.CameraParallelScale = args.zoom_in_scale
 
 # white background
 renderView1.Background = [1.0, 1.0, 1.0]
@@ -57,5 +54,29 @@ fFDdatDisplay.PointSize = 10.0
 fFDdatDisplay.AmbientColor = [0.6666666666666666, 0.0, 0.0]
 fFDdatDisplay.DiffuseColor = [0.6666666666666666, 0.0, 0.0]
 
-# save screenshot
-SaveScreenshot("plots/airfoil_mesh.png", renderView1, ImageResolution=[1200, 800])
+if args.plot_all_views:
+    # overall
+    renderView1.CameraPosition = [0.5, 0, 10.0]
+    renderView1.CameraFocalPoint = [0.5, 0, 0.0]
+    renderView1.CameraParallelScale = 0.5
+    SaveScreenshot("plots/airfoil_mesh_overview.png", renderView1, ImageResolution=[1200, 800])
+
+    # le
+    renderView1.CameraPosition = [0.0, 0, 10.0]
+    renderView1.CameraFocalPoint = [0.0, 0, 0.0]
+    renderView1.CameraParallelScale = 0.2
+    SaveScreenshot("plots/airfoil_mesh_le.png", renderView1, ImageResolution=[1200, 800])
+
+    # te
+    renderView1.CameraPosition = [1.0, 0, 10.0]
+    renderView1.CameraFocalPoint = [1.0, 0, 0.0]
+    renderView1.CameraParallelScale = 0.2
+    SaveScreenshot("plots/airfoil_mesh_te.png", renderView1, ImageResolution=[1200, 800])
+else:
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [args.x_location, args.y_location, 10.0]
+    renderView1.CameraFocalPoint = [args.x_location, args.y_location, 0.0]
+    renderView1.CameraParallelScale = args.zoom_in_scale
+
+    # save screenshot
+    SaveScreenshot("plots/airfoil_mesh.png", renderView1, ImageResolution=[1200, 800])
