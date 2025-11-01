@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -45,13 +47,13 @@ for i, line in enumerate(lines):
 plt.figure(figsize=(12, 8))
 
 # make sure all variables have the same size
-n_steps = len(U0_residuals)
+n_steps = len(nuTilda_residuals)
 time_steps = np.arange(n_steps)
+U0_residuals = U0_residuals[0:n_steps]
 U1_residuals = U1_residuals[0:n_steps]
 U2_residuals = U2_residuals[0:n_steps]
 he_residuals = he_residuals[0:n_steps]
 p_residuals = p_residuals[0:n_steps]
-nuTilda_residuals = nuTilda_residuals[0:n_steps]
 plt.semilogy(
     time_steps[args.start_time_cfd : args.end_time_cfd],
     U0_residuals[args.start_time_cfd : args.end_time_cfd],

@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -29,7 +31,7 @@ for i, line in enumerate(lines):
 
 # Create the plot CD
 plt.figure(figsize=(12, 8))
-time_size = len(CD)
+time_size = len(CM)
 time_steps = np.arange(time_size)
 CD = CD[0:time_size]
 CL = CL[0:time_size]
