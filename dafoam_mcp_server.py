@@ -1,8 +1,7 @@
-import os
 from mcp.server.fastmcp import FastMCP
 import base64
 from pathlib import Path
-from mcp.types import ImageContent, TextContent
+from mcp.types import TextContent
 import subprocess
 import asyncio
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -18,19 +17,6 @@ logging.basicConfig(level=logging.CRITICAL)
 mcp = FastMCP("dafoam_mcp_server")
 
 airfoil_path = "/home/dafoamuser/mount/airfoils/"
-
-# HTTP server configuration for file serving
-FILE_HTTP_PORT = 8001  # Changed to 8001 to avoid conflict with MCP HTTP port
-http_server = None
-server_started = False
-
-
-# Start HTTP server in daemon thread when module loads
-server_thread = threading.Thread(target=start_http_server, daemon=True)
-server_thread.start()
-
-# Give the server a moment to start
-time.sleep(0.5)
 
 
 @mcp.tool()
@@ -60,8 +46,8 @@ async def airfoil_run_optimization(
     Inputs:
         cpu_cores: The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells, and use one more core for every 10,000 more cells. Default: 1
         angle_of_attack: The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
-        mach_number: The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. We should use the same mach number set in the airfoil_generate_mesh call.
-        reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number.
+        mach_number: The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. We should use the same mach number set in the airfoil_generate_mesh call. Default: 0.1
+        reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number. Default: 1000000
         lift_constraint: The lift constraint. Default: 0.5
     Outputs:
         A message saying that the optimization is running in the background and the progress is written to log_optimization.txt
@@ -105,8 +91,8 @@ async def airfoil_run_cfd_simulation(
     Inputs:
         cpu_cores: The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells, and use one more core for every 10,000 more cells. Default: 1
         angle_of_attack: The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
-        mach_number: The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. We should use the same mach number set in the airfoil_generate_mesh call.
-        reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number.
+        mach_number: The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions. We should use the same mach number set in the airfoil_generate_mesh call. Default: 0.1
+        reynolds_number: The Reynolds number, users can also use Re to denote the Reynolds number. Default: 1000000
     Outputs:
         A message saying that the cfd simulation is running in the background and the progress is written to log_cfd_simulation.txt
     """
@@ -564,7 +550,7 @@ def create_image_html(image_files: list, titles: list, main_title: str = "Airfoi
                 {''.join([f'<li><a href="{url}" target="_blank">{url}</a></li>' for url in urls])}
             </ul>
             <p style="font-size: 12px; color: #666; margin-top: 10px;">
-                Note: Images are embedded in this HTML file and don't require server access. 
+                Note: Images are embedded in this HTML file and don't require server access.
                 You can save this HTML file and open it offline.
             </p>
         </div>
@@ -689,6 +675,19 @@ def create_image_html(image_files: list, titles: list, main_title: str = "Airfoi
 
     return html_filename
 
+
+# HTTP server configuration for file serving
+FILE_HTTP_PORT = 8001  # Changed to 8001 to avoid conflict with MCP HTTP port
+http_server = None
+server_started = False
+
+
+# Start HTTP server in daemon thread when module loads
+server_thread = threading.Thread(target=start_http_server, daemon=True)
+server_thread.start()
+
+# Give the server a moment to start
+time.sleep(0.5)
 
 if __name__ == "__main__":
     # Use stdio mode only - FastMCP doesn't directly support SSE
