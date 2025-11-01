@@ -78,4 +78,4 @@ pLUTColorBar.RangeLabelFormat = '%.3e'
 pLUTColorBar.ScalarBarThickness = 8
 
 # save screenshot
-SaveScreenshot("./image_airfoil_flow_field.png", renderView1, ImageResolution=[1200, 1000])
+SaveScreenshot("./plots/airfoil_flow_field.png", renderView1, ImageResolution=[1200, 1000])

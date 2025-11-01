@@ -58,4 +58,4 @@ fFDdatDisplay.AmbientColor = [0.6666666666666666, 0.0, 0.0]
 fFDdatDisplay.DiffuseColor = [0.6666666666666666, 0.0, 0.0]
 
 # save screenshot
-SaveScreenshot("./image_airfoil_mesh.png", renderView1, ImageResolution=[1200, 800])
+SaveScreenshot("plots/airfoil_mesh.png", renderView1, ImageResolution=[1200, 800])

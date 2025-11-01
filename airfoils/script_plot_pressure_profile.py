@@ -135,7 +135,7 @@ lineChartView1.LeftAxisRangeMinimum = 1.5
 lineChartView1.LeftAxisRangeMaximum = -1.5
 
 # save screenshot
-SaveScreenshot("./image_airfoil_pressure_profile.png", lineChartView1, ImageResolution=[800, 600])
+SaveScreenshot("plots/airfoil_pressure_profile.png", lineChartView1, ImageResolution=[800, 600])
 
 # save data
 # SaveData('/slide_data.csv', proxy=plotOnSortedLines1, PointDataArrays=['U', 'nut', 'p'],

@@ -9,6 +9,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 import threading
 import logging
 import socket
+import time
 
 # Suppress all logging to stdout/stderr before MCP starts
 logging.basicConfig(level=logging.CRITICAL)
@@ -24,11 +25,31 @@ http_server = None
 server_started = False
 
 
+# helper functions
+def check_run_status():
+    """
+    Check whether the cfd simulation or optimization finished
+
+    Inputs:
+        None
+    Outputs:
+        finished: 1 = the run finishes. 0 = the run does not finish
+    """
+
+    file_path = f"{airfoil_path}/.dafoam_run_finished"
+    path = Path(file_path).expanduser()
+
+    if path.exists():
+        return 1
+    else:
+        return 0
+
+
 class CustomHTTPHandler(SimpleHTTPRequestHandler):
     """Custom HTTP handler to serve files from airfoil_path"""
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=airfoil_path, **kwargs)
+        super().__init__(*args, directory=airfoil_path + "/plots/", **kwargs)
 
     def log_message(self, format, *args):
         """Suppress HTTP server logs"""
@@ -63,7 +84,7 @@ def start_http_server():
         http_server.serve_forever()
     except Exception as e:
         # Log error to a file for debugging
-        with open(f"{airfoil_path}http_server_error.txt", "w") as f:
+        with open(f"{airfoil_path}/plots/http_server_error.txt", "w") as f:
             f.write(f"HTTP Server failed to start: {str(e)}\n")
         server_started = False
 
@@ -73,8 +94,6 @@ server_thread = threading.Thread(target=start_http_server, daemon=True)
 server_thread.start()
 
 # Give the server a moment to start
-import time
-
 time.sleep(0.5)
 
 
@@ -270,12 +289,9 @@ def create_image_html(image_files: list, titles: list, main_title: str = "Airfoi
 </html>"""
 
     # Save HTML file - use first image name or generic name
-    if len(image_files) == 1:
-        html_filename = image_files[0].replace(".png", ".html").replace(".jpg", ".html")
-    else:
-        html_filename = "image_airfoil_convergence.html"
+    html_filename = "airfoil_plots.html"
 
-    html_path = Path(airfoil_path) / html_filename
+    html_path = Path(airfoil_path) / "plots" / html_filename
 
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
@@ -294,11 +310,7 @@ async def airfoil_check_run_status():
         finished: 1 = the run finishes. 0 = the run does not finish
     """
 
-    # Run file check in executor to avoid blocking
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(None, check_run_status)
-
-    return TextContent(type="text", text=f"{result}")
+    return check_run_status()
 
 
 @mcp.tool()
@@ -397,7 +409,7 @@ async def airfoil_view_flow_field(
         frame: which frame to view. The frame is the time-step for cfd simulation or optimization iteration for optimization. Default: -1 (the last frame)
     Outputs:
         Message indicating the status with HTML link
-        Success: image_airfoil_flow_field.png is successfully generated and wrapped in HTML!
+        Success: airfoil_flow_field.png is successfully generated and wrapped in HTML!
         Error: Error occurred!
     """
 
@@ -414,18 +426,22 @@ async def airfoil_view_flow_field(
             None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         )
 
-        # Create HTML wrapper
-        html_file = create_html_wrapper("image_airfoil_flow_field.png", f"Airfoil Flow Field - {variable}")
+        # Create a single HTML with both images
+        image_files = [
+            "plots/airfoil_flow_field.png",
+        ]
+        image_titles = [f"{variable } Field"]
+        combined_html = create_image_html(image_files, image_titles, "Airfoil Flow Field")
 
-        if html_file:
+        if combined_html:
             return TextContent(
                 type="text",
-                text=f"Flow field visualization successfully generated!\n\nView the result: http://localhost:{FILE_HTTP_PORT}/{html_file}",
+                text=f"Flow field plots successfully generated!\n\nView convergence: http://localhost:{FILE_HTTP_PORT}/{combined_html}",
             )
         else:
             return TextContent(
                 type="text",
-                text="Image generated but HTML wrapper creation failed.",
+                text="Plots generated but HTML wrapper creation failed.",
             )
     except subprocess.CalledProcessError as e:
         return TextContent(
@@ -470,14 +486,14 @@ async def airfoil_view_residual(
 
         # Create a single HTML with both images
         image_files = [
-            "image_airfoil_function_cd.png",
-            "image_airfoil_function_cl.png",
-            "image_airfoil_function_cm.png",
-            "image_airfoil_residual_cfd.png",
+            "plots/airfoil_function_cd.png",
+            "plots/airfoil_function_cl.png",
+            "plots/airfoil_function_cm.png",
+            "plots/airfoil_residual_cfd.png",
         ]
         image_titles = ["CD Convergence", "CL Convergence", "CM Convergence", "CFD Residual Convergence"]
         if log_file == "log_optimization.txt":
-            image_files.append("image_airfoil_residual_adjoint.png")
+            image_files.append("plots/airfoil_residual_adjoint.png")
             image_titles.append("Adjoint Residual Convergence")
         combined_html = create_image_html(image_files, image_titles, "Airfoil Convergence Analysis")
 
@@ -509,7 +525,7 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
         frame: which frame to view. The frame is the time-step for cfd simulation or optimization iteration for optimization. Default: -1 (the last frame)
     Outputs:
         Message indicating the status with HTML link
-        Success: image_airfoil_pressure_profile.png is successfully generated and wrapped in HTML!
+        Success: airfoil_pressure_profile.png is successfully generated and wrapped in HTML!
         Error: Error occurred!
     """
 
@@ -528,7 +544,7 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
 
         # Create HTML wrapper using multi-image function
         html_file = create_image_html(
-            ["image_airfoil_pressure_profile.png"], ["Airfoil Pressure Profile"], "Airfoil Pressure Distribution"
+            ["plots/airfoil_pressure_profile.png"], ["Airfoil Pressure Profile"], "Airfoil Pressure Distribution"
         )
 
         if html_file:
@@ -559,7 +575,7 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
         zoom_in_scale: how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more. Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
     Outputs:
         Message indicating the status with HTML link
-        Success: image_airfoil_mesh.png is successfully generated and wrapped in HTML!
+        Success: airfoil_mesh.png is successfully generated and wrapped in HTML!
         Error: Error occurred!
     """
 
@@ -577,7 +593,7 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
         )
 
         # Create HTML wrapper using multi-image function
-        html_file = create_image_html(["image_airfoil_mesh.png"], ["Airfoil Mesh Visualization"], "Airfoil Mesh")
+        html_file = create_image_html(["plots/airfoil_mesh.png"], ["Airfoil Mesh Visualization"], "Airfoil Mesh")
 
         if html_file:
             return TextContent(
@@ -632,11 +648,11 @@ async def airfoil_generate_mesh(
         f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD/FFD.dat && '
         f"rm volumeMesh.xyz surfMesh.xyz && "
         f"pvpython script_plot_mesh.py && "
-        f"mv image_airfoil_mesh.png image_airfoil_mesh_all.png && "
+        f"mv plots/airfoil_mesh.png plots/airfoil_mesh_all.png && "
         f"pvpython script_plot_mesh.py -x_location=0 -zoom_in_scale=0.25 && "
-        f"mv image_airfoil_mesh.png image_airfoil_mesh_le.png && "
+        f"mv plots/airfoil_mesh.png plots/airfoil_mesh_le.png && "
         f"pvpython script_plot_mesh.py -x_location=1 -zoom_in_scale=0.25 && "
-        f"mv image_airfoil_mesh.png image_airfoil_mesh_te.png"
+        f"mv plots/airfoil_mesh.png plots/airfoil_mesh_te.png"
     )
 
     try:
@@ -648,7 +664,7 @@ async def airfoil_generate_mesh(
 
         # Create HTML wrapper using multi-image function
         html_file = create_image_html(
-            ["image_airfoil_mesh_all.png", "image_airfoil_mesh_le.png", "image_airfoil_mesh_te.png"],
+            ["plots/airfoil_mesh_all.png", "plots/airfoil_mesh_le.png", "plots/airfoil_mesh_te.png"],
             [
                 f"Airfoil Mesh - {airfoil_profile.upper()} All",
                 f"Airfoil Mesh - {airfoil_profile.upper()} Leading Edge",
