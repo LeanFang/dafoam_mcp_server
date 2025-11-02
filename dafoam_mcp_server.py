@@ -304,6 +304,60 @@ async def airfoil_view_flow_field(
 
 
 @mcp.tool()
+async def airfoil_view_optimization_history():
+    """
+    Airfoil Module:
+        Plot the optimization history
+
+    Inputs:
+        None
+    Outputs:
+        Message indicating the status with HTML links. Must show the link in bold to users.
+    """
+
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd {airfoil_path} && "
+        f"python script_plot_optimization_history.py"
+    )
+
+    try:
+        # run in non-blocking mode
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+        )
+
+        # Create a single HTML with both images
+        html_filename = "airfoil_optimization_history.html"
+        image_files = [
+            "plots/airfoil_opt_hst_cd.png",
+            "plots/airfoil_opt_hst_cl.png",
+            "plots/airfoil_opt_hst_aoa.png",
+            "plots/airfoil_opt_hst_shape.png",
+            "plots/airfoil_opt_hst_optimality.png",
+            "plots/airfoil_opt_hst_feasibility.png",
+        ]
+        image_titles = [
+            "CD Optimization History",
+            "CD Optimization History",
+            "Angle of Attack Optimization History",
+            "Shape Variable Optimization History",
+            "Optimality History",
+            "Feasibility History",
+        ]
+        create_image_html(image_files, image_titles, html_filename)
+
+        return (
+            "Optimization history plots successfully generated!\n\n"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
+        )
+
+    except subprocess.CalledProcessError as e:
+        return f"Error occurred!\n\nStderr:\n{e.stderr}"
+
+
+@mcp.tool()
 async def airfoil_view_convergence(
     log_file: str, start_time_cfd: int, end_time_cfd: int, start_time_adjoint: int, end_time_adjoint: int
 ):
