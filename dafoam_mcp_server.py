@@ -272,7 +272,7 @@ async def airfoil_view_flow_field(
             "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
         frame:
             which frame to view. The frame is the time-step for cfd simulation or
-            optimization iteration for optimization. Default: -1 (the last frame)
+            optimization iteration for optimization. Default: -1 (all frames)
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
@@ -293,7 +293,8 @@ async def airfoil_view_flow_field(
 
         # Create a single HTML with both images
         html_filename = "airfoil_flow_field.html"
-        create_image_html(["plots/airfoil_flow_field.png"], [f"{variable } Field"], html_filename)
+        image_names = glob.glob(f"{airfoil_path}/plots/airfoil_flow_field*.png")
+        create_image_html(sorted(image_names, reverse=True), sorted(image_names, reverse=True), html_filename)
 
         return (
             "Flow field plots successfully generated!\n\n"
@@ -748,7 +749,7 @@ def download_airfoil_from_uiuc(airfoil_name, save_path):
             f.write(content)
         return True
 
-    except Exception as e:
+    except Exception:
         return False
 
 

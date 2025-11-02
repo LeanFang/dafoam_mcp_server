@@ -77,5 +77,33 @@ pLUTColorBar.LabelFormat = '%g'
 pLUTColorBar.RangeLabelFormat = '%.3e'
 pLUTColorBar.ScalarBarThickness = 8
 
-# save screenshot
-SaveScreenshot("./plots/airfoil_flow_field.png", renderView1, ImageResolution=[1200, 1000])
+# go to the specific frame
+if args.frame == -1:
+    # Get all available time steps
+    animationScene1 = GetAnimationScene()
+    time_steps = animationScene1.TimeKeeper.TimestepValues
+
+    # Loop through all time steps from last to first
+    for idx, time_value in enumerate(reversed(time_steps)):
+        animationScene1.AnimationTime = time_value
+        UpdatePipeline(time_value)
+
+        if time_value < 1.0:
+            iterI = "%04d" % int(time_value * 10000)
+        else:
+            iterI = "Final"
+
+        # save screenshot
+        SaveScreenshot(f"./plots/airfoil_flow_field_{iterI}.png", renderView1, ImageResolution=[1200, 1000])
+
+else:
+    time_value = args.frame * 0.0001
+    if time_value < 1.0:
+        iterI = "%04d" % int(time_value * 10000)
+    else:
+        iterI = "Final"
+    animationScene1.AnimationTime = time_value
+    UpdatePipeline()
+
+    # save screenshot
+    SaveScreenshot(f"./plots/airfoil_flow_field_{iterI}.png", renderView1, ImageResolution=[1200, 1000])
