@@ -3,9 +3,14 @@
 #### import the simple module from the paraview
 from paraview.simple import *
 import argparse, os
+import numpy as np
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-mach_number", help="mach number", type=float, default=0.3)
+parser.add_argument("-mach_number", help="mach number", type=float, default=0.1)
 parser.add_argument("-frame", help="which frame to visualize", type=int, default=-1)
 args = parser.parse_args()
 
@@ -30,12 +35,6 @@ animationScene1 = GetAnimationScene()
 # update animation scene based on data timesteps
 animationScene1.UpdateAnimationUsingDataTimeSteps()
 
-# go to the specific frame
-if args.frame == -1:
-    animationScene1.GoToLast()
-else:
-    animationScene1.AnimationTime = args.frame * 0.0001
-
 # get active view
 renderView1 = GetActiveViewOrCreate("RenderView")
 
@@ -51,21 +50,8 @@ renderView1.CameraParallelProjection = 1
 # Properties modified on paraviewfoam
 paraviewfoam.MeshRegions = ["wing"]
 
-# create a new 'Calculator'
-calculator1 = Calculator(registrationName="Calculator1", Input=paraviewfoam)
-
-# Properties modified on calculator1
-calculator1.ResultArrayName = "Cp"
-calculator1.Function = "(p-101325)/%f" % coeff
-
-# show data in view
-calculator1Display = Show(calculator1, renderView1, "GeometryRepresentation")
-
-# hide data in view
-Hide(paraviewfoam, renderView1)
-
 # create a new 'Slice'
-slice1 = Slice(registrationName="Slice1", Input=calculator1)
+slice1 = Slice(registrationName="Slice1", Input=paraviewfoam)
 
 # Properties modified on slice1.SliceType
 slice1.SliceType.Normal = [0.0, 0.0, 1.0]
@@ -73,71 +59,137 @@ slice1.SliceType.Normal = [0.0, 0.0, 1.0]
 # create a new 'Plot On Sorted Lines'
 plotOnSortedLines1 = PlotOnSortedLines(registrationName="PlotOnSortedLines1", Input=slice1)
 
-# Create a new 'Line Chart View'
-lineChartView1 = CreateView("XYChartView")
+# go to the specific frame
+if args.frame == -1:
+    # Get all available time steps
+    animationScene1 = GetAnimationScene()
+    time_steps = animationScene1.TimeKeeper.TimestepValues
 
-# show data in view
-plotOnSortedLines1Display = Show(plotOnSortedLines1, lineChartView1, "XYChartRepresentation")
+    # Loop through all time steps from last to first
+    for idx, time_value in enumerate(reversed(time_steps)):
+        animationScene1.AnimationTime = time_value
+        UpdatePipeline(time_value)
 
-# Properties modified on plotOnSortedLines1Display
-plotOnSortedLines1Display.XArrayName = "Points_X"
+        if time_value < 1.0:
+            iterI = "%04d" % int(time_value * 10000)
+        else:
+            iterI = "Final"
 
-# Properties modified on plotOnSortedLines1Display
-plotOnSortedLines1Display.SeriesVisibility = ["Cp (3)"]
+        # Fetch the data to the client
+        multi_block_data = servermanager.Fetch(plotOnSortedLines1)
 
-# Properties modified on plotOnSortedLines1Display
-plotOnSortedLines1Display.SeriesLineThickness = ["Cp (3)", "3"]
+        # Navigate through the nested structure
+        # Level 0 -> Level 1 (Patches)
+        patches = multi_block_data.GetBlock(0)
 
-# Properties modified on plotOnSortedLines1Display
-plotOnSortedLines1Display.SeriesColor = ["Cp (3)", "0", "0", "0"]
+        # Level 1 -> Level 2 (wing)
+        wing = patches.GetBlock(0)
 
-# Properties modified on lineChartView1
-lineChartView1.ShowLegend = 0
+        # Level 2 -> Level 3 (vtkPolyData - the actual data)
+        data = wing.GetBlock(0)
 
-# Properties modified on lineChartView1
-lineChartView1.LeftAxisTitle = "Cp"
+        # Now you can get the point data
+        point_data = data.GetPointData()
 
-# Properties modified on lineChartView1
-lineChartView1.BottomAxisTitle = "x/c"
+        # Get number of points
+        n_points = data.GetNumberOfPoints()
 
-# Properties modified on lineChartView1
-lineChartView1.LeftAxisTitleFontSize = 15
+        # Get coordinates (x, y, z)
+        points = np.array([data.GetPoint(i) for i in range(n_points)])
+        x = points[:, 0]
+        y = points[:, 1]
+        z = points[:, 2]
 
-# Properties modified on lineChartView1
-lineChartView1.LeftAxisLabelFontSize = 15
+        # Get pressure (p)
+        p_array = point_data.GetArray("p")
+        p = np.array([p_array.GetValue(i) for i in range(p_array.GetNumberOfTuples())])
+        cp = (p - 101325.0) / coeff
 
-# Properties modified on lineChartView1
-lineChartView1.BottomAxisTitleFontSize = 15
+        # Create figure with two subplots, share x-axis
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), gridspec_kw={"height_ratios": [2, 1], "hspace": 0.05})
 
-# Properties modified on lineChartView1
-lineChartView1.BottomAxisLabelFontSize = 15
+        # Top plot: Cp vs x/c (complete distribution)
+        ax1.set_title(
+            f"Pressure profile on the airfoil. Iteration = {iterI}. Mach = {args.mach_number}",
+            fontsize=18,
+            fontweight="bold",
+        )
+        ax1.plot(x, cp, "-k", linewidth=2)
+        ax1.set_ylim([-2, 2])
+        ax1.invert_yaxis()  # Invert y-axis for Cp plot (standard in aerodynamics)
+        ax1.set_ylabel("$C_p$", fontsize=16, fontweight="bold")
+        ax1.tick_params(axis="x", labelsize=15)
+        ax1.tick_params(axis="y", labelsize=15)
+        # Completely remove x-axis for top plot
+        ax1.spines["bottom"].set_visible(False)
+        ax1.set_xticks([])
+        # Remove top and right spines
+        ax1.spines["top"].set_visible(False)
+        ax1.spines["right"].set_visible(False)
 
-# Properties modified on lineChartView1
-lineChartView1.BottomAxisUseCustomLabels = 1
+        # Bottom plot: Airfoil profile
+        ax2.plot(x, y, "-k", linewidth=2)
+        ax2.set_xlabel("x/c", fontsize=16, fontweight="bold")
+        ax2.set_ylabel("y/c", fontsize=16, fontweight="bold")
+        ax2.tick_params(axis="x", labelsize=15)
+        ax2.tick_params(axis="y", labelsize=15)
+        ax2.set_aspect("equal", adjustable="datalim")
+        ax2.set_xlim([-0.05, 1.05])
+        # Remove top and right spines
+        ax2.spines["top"].set_visible(False)
+        ax2.spines["right"].set_visible(False)
 
-# Properties modified on lineChartView1
-lineChartView1.BottomAxisLabels = ["0", "", "0.2", "", "0.4", "", "0.6", "", "0.8", "", "1.0", ""]
+        # Use frame index in filename to ensure unique names
+        plt.savefig(f"plots/airfoil_pressure_profile_{iterI}.png", dpi=200, bbox_inches="tight")
+        plt.close()
 
-# Properties modified on lineChartView1
-lineChartView1.BottomAxisUseCustomRange = 1
+else:
+    time_value = args.frame * 0.0001
+    if time_value < 1.0:
+        iterI = "%04d" % int(time_value * 10000)
+    else:
+        iterI = "Final"
+    animationScene1.AnimationTime = time_value
+    UpdatePipeline()
 
-# Properties modified on lineChartView1
-lineChartView1.BottomAxisRangeMaximum = 1.05
-lineChartView1.BottomAxisRangeMinimum = -0.05
+    # Fetch and plot for specific frame (same code as in loop)
+    multi_block_data = servermanager.Fetch(plotOnSortedLines1)
+    patches = multi_block_data.GetBlock(0)
+    wing = patches.GetBlock(0)
+    data = wing.GetBlock(0)
+    point_data = data.GetPointData()
+    n_points = data.GetNumberOfPoints()
+    points = np.array([data.GetPoint(i) for i in range(n_points)])
+    x = points[:, 0]
+    y = points[:, 1]
+    p_array = point_data.GetArray("p")
+    p = np.array([p_array.GetValue(i) for i in range(p_array.GetNumberOfTuples())])
+    cp = (p - 101325.0) / coeff
 
-# Properties modified on lineChartView1
-lineChartView1.LeftAxisUseCustomRange = 1
-
-# Properties modified on lineChartView1
-lineChartView1.LeftAxisRangeMinimum = 2.0
-
-# Properties modified on lineChartView1
-lineChartView1.LeftAxisRangeMaximum = -2.0
-
-# save screenshot
-SaveScreenshot("plots/airfoil_pressure_profile.png", lineChartView1, ImageResolution=[800, 600])
-
-# save data
-# SaveData('/slide_data.csv', proxy=plotOnSortedLines1, PointDataArrays=['U', 'nut', 'p'],
-#    FieldDataArrays=['CasePath'],
-#    Precision=8)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), gridspec_kw={"height_ratios": [2, 1], "hspace": 0.05})
+    ax1.set_title(
+        f"Pressure profile on the airfoil. Iteration = {iterI}. Mach = {args.mach_number}",
+        fontsize=18,
+        fontweight="bold",
+    )
+    ax1.plot(x, cp, "-k", linewidth=2)
+    ax1.set_ylim([-2, 2])
+    ax1.invert_yaxis()
+    ax1.set_ylabel("$C_p$", fontsize=16, fontweight="bold")
+    ax1.tick_params(axis="x", labelsize=15)
+    ax1.tick_params(axis="y", labelsize=15)
+    ax1.spines["bottom"].set_visible(False)
+    ax1.set_xticks([])
+    ax1.spines["top"].set_visible(False)
+    ax1.spines["right"].set_visible(False)
+    ax2.plot(x, y, "-k", linewidth=2)
+    ax2.set_xlabel("x/c", fontsize=16, fontweight="bold")
+    ax2.set_ylabel("y/c", fontsize=16, fontweight="bold")
+    ax2.tick_params(axis="x", labelsize=15)
+    ax2.tick_params(axis="y", labelsize=15)
+    ax2.set_aspect("equal", adjustable="datalim")
+    ax2.set_xlim([-0.05, 1.05])
+    ax2.spines["top"].set_visible(False)
+    ax2.spines["right"].set_visible(False)
+    plt.savefig(f"plots/airfoil_pressure_profile_{iterI}.png", dpi=200, bbox_inches="tight")
+    plt.close()

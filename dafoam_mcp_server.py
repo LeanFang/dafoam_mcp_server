@@ -9,6 +9,7 @@ import logging
 import time
 import urllib.request
 import os
+import glob
 
 # Suppress all logging to stdout/stderr before MCP starts
 logging.basicConfig(level=logging.CRITICAL)
@@ -432,7 +433,7 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
             airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
         frame:
             which frame to view. The frame is the time-step for cfd simulation or
-            optimization iteration for optimization. Default: -1 (the last frame)
+            optimization iteration for optimization. Default: -1 (all frames)
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
@@ -452,7 +453,8 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
 
         # Create HTML wrapper using multi-image function
         html_filename = "airfoil_pressure_profile.html"
-        create_image_html(["plots/airfoil_pressure_profile.png"], ["Airfoil Pressure Profile"], html_filename)
+        image_names = glob.glob(f"{airfoil_path}/plots/airfoil_pressure_profile*.png")
+        create_image_html(sorted(image_names, reverse=True), sorted(image_names, reverse=True), html_filename)
 
         return (
             "Pressure profile successfully generated!\n\n"
