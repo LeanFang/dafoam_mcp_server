@@ -1,5 +1,6 @@
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -50,6 +51,7 @@ plt.ylabel("CD", fontsize=20, fontweight="bold")
 plt.title("CD Convergence History (printed every 10 steps)", fontsize=20, fontweight="bold")
 plt.grid(True, which="both", linestyle=":", alpha=0.6)
 plt.tick_params(axis="both", which="major", labelsize=20)
+plt.ylim(CD[-1] * 0.5, CD[-1] * 2)
 ax = plt.gca()
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
@@ -73,6 +75,7 @@ plt.ylabel("CL", fontsize=20, fontweight="bold")
 plt.title("CL Convergence History (printed every 10 steps)", fontsize=20, fontweight="bold")
 plt.grid(True, which="both", linestyle=":", alpha=0.6)
 plt.tick_params(axis="both", which="major", labelsize=20)
+plt.ylim(CL[-1] * 0.5, CL[-1] * 2)
 ax = plt.gca()
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
@@ -96,6 +99,7 @@ plt.ylabel("CM", fontsize=20, fontweight="bold")
 plt.title("CM Convergence History (printed every 10 steps)", fontsize=20, fontweight="bold")
 plt.grid(True, which="both", linestyle=":", alpha=0.6)
 plt.tick_params(axis="both", which="major", labelsize=20)
+plt.ylim(CM[-1] * 0.5, CM[-1] * 2)
 ax = plt.gca()
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)

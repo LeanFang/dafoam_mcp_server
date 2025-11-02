@@ -86,7 +86,7 @@ plotOnSortedLines1Display.XArrayName = "Points_X"
 plotOnSortedLines1Display.SeriesVisibility = ["Cp (3)"]
 
 # Properties modified on plotOnSortedLines1Display
-plotOnSortedLines1Display.SeriesLineThickness = ["Cp (3)", "4"]
+plotOnSortedLines1Display.SeriesLineThickness = ["Cp (3)", "3"]
 
 # Properties modified on plotOnSortedLines1Display
 plotOnSortedLines1Display.SeriesColor = ["Cp (3)", "0", "0", "0"]

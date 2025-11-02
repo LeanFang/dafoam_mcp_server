@@ -50,14 +50,13 @@ relaxationFactors
 {
     fields
     {
-        "(p|p_rgh)"                     0.30;
-        rho                             0.1;
+        "(p|rho)"                      1.0;
     }
     equations
     {
-        "(U|T|e|h|nuTilda|k|epsilon|omega)" 0.70;
+        p                              1.0;
+        "(U|T|e|h|nuTilda|k|epsilon|omega)" 0.80;
     }
-
 }
 
 potentialFlow
