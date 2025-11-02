@@ -264,8 +264,27 @@ def plot_all_figures(iterations, cd_values, cl_values, aoa_values, shape_vars):
     ax.tick_params(axis="both", which="major", labelsize=14)
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
+    # Annotate final value
+    final_cd = cd_values[-1]
+    plt.annotate(
+        f"Final: {final_cd:.7f}",
+        xy=(iterations[-1], final_cd),
+        xytext=(-80, 30),
+        textcoords="offset points",
+        fontsize=16,
+        arrowprops=dict(arrowstyle="->", lw=2, color="black"),
+    )
+    # Annotate initial value
+    init_cd = cd_values[0]
+    plt.annotate(
+        f"Init: {init_cd:.7f}",
+        xy=(iterations[0], init_cd),
+        xytext=(-80, 30),
+        textcoords="offset points",
+        fontsize=16,
+        arrowprops=dict(arrowstyle="->", lw=2, color="black"),
+    )
     plt.tight_layout()
-
     output_file = "plots/airfoil_opt_hst_cd.png"
     plt.savefig(output_file, dpi=300, bbox_inches="tight")
     logging.info(f"Saved: {output_file}")
@@ -281,8 +300,27 @@ def plot_all_figures(iterations, cd_values, cl_values, aoa_values, shape_vars):
     ax.tick_params(axis="both", which="major", labelsize=14)
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
+    # Annotate final value
+    final_cl = cl_values[-1]
+    plt.annotate(
+        f"Final: {final_cl:.6f}",
+        xy=(iterations[-1], final_cl),
+        xytext=(-80, 30),
+        textcoords="offset points",
+        fontsize=16,
+        arrowprops=dict(arrowstyle="->", lw=2, color="black"),
+    )
+    # Annotate initial value
+    init_cl = cl_values[0]
+    plt.annotate(
+        f"Init: {init_cl:.6f}",
+        xy=(iterations[0], init_cl),
+        xytext=(-80, 30),
+        textcoords="offset points",
+        fontsize=16,
+        arrowprops=dict(arrowstyle="->", lw=2, color="black"),
+    )
     plt.tight_layout()
-
     output_file = "plots/airfoil_opt_hst_cl.png"
     plt.savefig(output_file, dpi=300, bbox_inches="tight")
     logging.info(f"Saved: {output_file}")
@@ -301,8 +339,27 @@ def plot_all_figures(iterations, cd_values, cl_values, aoa_values, shape_vars):
         ax.tick_params(axis="both", which="major", labelsize=14)
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
+        # Annotate final value
+        final_aoa = aoa_plot[-1]
+        plt.annotate(
+            f"Final: {final_aoa:.5f}",
+            xy=(iterations[-1], final_aoa),
+            xytext=(-80, 30),
+            textcoords="offset points",
+            fontsize=16,
+            arrowprops=dict(arrowstyle="->", lw=2, color="black"),
+        )
+        # Annotate init value
+        init_aoa = aoa_plot[0]
+        plt.annotate(
+            f"Init: {init_aoa:.5f}",
+            xy=(iterations[0], init_aoa),
+            xytext=(-80, 30),
+            textcoords="offset points",
+            fontsize=16,
+            arrowprops=dict(arrowstyle="->", lw=2, color="black"),
+        )
         plt.tight_layout()
-
         output_file = "plots/airfoil_opt_hst_aoa.png"
         plt.savefig(output_file, dpi=300, bbox_inches="tight")
         logging.info(f"Saved: {output_file}")

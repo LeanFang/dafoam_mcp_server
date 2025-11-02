@@ -55,6 +55,16 @@ plt.ylim(CD[-1] * 0.5, CD[-1] * 2)
 ax = plt.gca()
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
+# Annotate final value
+final_cd = CD[-1]
+plt.annotate(
+    f"Final: {final_cd:.7f}",
+    xy=(time_steps[-1], final_cd),
+    xytext=(-80, 30),
+    textcoords="offset points",
+    fontsize=16,
+    arrowprops=dict(arrowstyle="->", lw=2, color="black"),
+)
 plt.tight_layout()
 plt.savefig("plots/airfoil_function_cd.png", dpi=200)
 plt.close()
@@ -79,6 +89,16 @@ plt.ylim(CL[-1] * 0.5, CL[-1] * 2)
 ax = plt.gca()
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
+# Annotate final value
+final_cl = CL[-1]
+plt.annotate(
+    f"Final: {final_cl:.6f}",
+    xy=(time_steps[-1], final_cl),
+    xytext=(-80, 30),
+    textcoords="offset points",
+    fontsize=16,
+    arrowprops=dict(arrowstyle="->", lw=2, color="black"),
+)
 plt.tight_layout()
 plt.savefig("plots/airfoil_function_cl.png", dpi=200)
 plt.close()
@@ -103,6 +123,16 @@ plt.ylim(CM[-1] * 0.5, CM[-1] * 2)
 ax = plt.gca()
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
+# Annotate final value
+final_cm = CM[-1]
+plt.annotate(
+    f"Final: {final_cm:.8f}",
+    xy=(time_steps[-1], final_cm),
+    xytext=(-80, 30),
+    textcoords="offset points",
+    fontsize=16,
+    arrowprops=dict(arrowstyle="->", lw=2, color="black"),
+)
 plt.tight_layout()
 plt.savefig("plots/airfoil_function_cm.png", dpi=200)
 plt.close()
