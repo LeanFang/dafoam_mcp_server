@@ -112,11 +112,6 @@ async def airfoil_generate_mesh(
         html_filename = "airfoil_mesh_all_views.html"
         create_image_html(
             ["plots/airfoil_mesh_overview.png", "plots/airfoil_mesh_le.png", "plots/airfoil_mesh_te.png"],
-            [
-                f"Airfoil Mesh - {airfoil_profile.upper()} Overview",
-                f"Airfoil Mesh - {airfoil_profile.upper()} Leading Edge",
-                f"Airfoil Mesh - {airfoil_profile.upper()} Trailing Edge",
-            ],
             html_filename,
         )
 
@@ -294,7 +289,7 @@ async def airfoil_view_flow_field(
         # Create a single HTML with both images
         html_filename = "airfoil_flow_field.html"
         image_names = glob.glob(f"{airfoil_path}/plots/airfoil_flow_field*.png")
-        create_image_html(sorted(image_names, reverse=True), sorted(image_names, reverse=True), html_filename)
+        create_image_html(sorted(image_names, reverse=True), html_filename)
 
         return (
             "Flow field plots successfully generated!\n\n"
@@ -340,15 +335,7 @@ async def airfoil_view_optimization_history():
             "plots/airfoil_opt_hst_optimality.png",
             "plots/airfoil_opt_hst_feasibility.png",
         ]
-        image_titles = [
-            "CD Optimization History",
-            "CD Optimization History",
-            "Angle of Attack Optimization History",
-            "Shape Variable Optimization History",
-            "Optimality History",
-            "Feasibility History",
-        ]
-        create_image_html(image_files, image_titles, html_filename)
+        create_image_html(image_files, html_filename)
 
         return (
             "Optimization history plots successfully generated!\n\n"
@@ -407,11 +394,9 @@ async def airfoil_view_convergence(
             "plots/airfoil_function_cm.png",
             "plots/airfoil_residual_cfd.png",
         ]
-        image_titles = ["CD Convergence", "CL Convergence", "CM Convergence", "CFD Residual Convergence"]
         if log_file == "log_optimization.txt":
             image_files.append("plots/airfoil_residual_adjoint.png")
-            image_titles.append("Adjoint Residual Convergence")
-        create_image_html(image_files, image_titles, html_filename)
+        create_image_html(image_files, html_filename)
 
         return (
             "Residual and function plots successfully generated!\n\n"
@@ -455,7 +440,7 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
         # Create HTML wrapper using multi-image function
         html_filename = "airfoil_pressure_profile.html"
         image_names = glob.glob(f"{airfoil_path}/plots/airfoil_pressure_profile*.png")
-        create_image_html(sorted(image_names, reverse=True), sorted(image_names, reverse=True), html_filename)
+        create_image_html(sorted(image_names, reverse=True), html_filename)
 
         return (
             "Pressure profile successfully generated!\n\n"
@@ -501,7 +486,7 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
 
         # Create HTML wrapper using multi-image function
         html_filename = "airfoil_mesh.html"
-        create_image_html(["plots/airfoil_mesh.png"], ["Airfoil Mesh Visualization"], html_filename)
+        create_image_html(["plots/airfoil_mesh.png"], html_filename)
 
         return (
             "Mesh visualization successfully generated!\n\n"
@@ -563,17 +548,14 @@ def start_http_server():
         server_started = False
 
 
-def create_image_html(image_files: list, titles: list, html_filename: str) -> str:
+def create_image_html(image_files: list, html_filename: str) -> str:
     """
     Create an HTML wrapper for multiple images displayed side by side with embedded base64 images
 
     Inputs:
         image_files: List of image filenames (e.g., ['image1.png', 'image2.png'])
-        titles: List of titles for each image
         html_filename: name of the generated html file
     """
-    if len(image_files) != len(titles):
-        return None
 
     # Read all images and convert to base64
     image_data_list = []
@@ -589,7 +571,7 @@ def create_image_html(image_files: list, titles: list, html_filename: str) -> st
         img_extension = image_path.suffix.lower()
         mime_type = "image/png" if img_extension == ".png" else "image/jpeg"
 
-        image_data_list.append({"data": img_data, "mime": mime_type, "filename": image_filename, "title": titles[i]})
+        image_data_list.append({"data": img_data, "mime": mime_type, "filename": image_filename})
 
     if not image_data_list:
         return None
@@ -599,9 +581,8 @@ def create_image_html(image_files: list, titles: list, html_filename: str) -> st
     for img_info in image_data_list:
         image_sections += f"""
         <div class="image-section">
-            <h2>{img_info['title']}</h2>
             <div class="image-container">
-                <img src="data:{img_info['mime']};base64,{img_info['data']}" alt="{img_info['title']}">
+                <img src="data:{img_info['mime']};base64,{img_info['data']}">
             </div>
             <div class="image-info">
                 <p>Image: {img_info['filename']}</p>
@@ -615,7 +596,6 @@ def create_image_html(image_files: list, titles: list, html_filename: str) -> st
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{html_filename}</title>
     <style>
         body {{
             font-family: Arial, sans-serif;
@@ -711,7 +691,6 @@ def create_image_html(image_files: list, titles: list, html_filename: str) -> st
 </head>
 <body>
     <div class="main-container">
-        <h1>{html_filename}</h1>
         {image_sections}
     </div>
 </body>

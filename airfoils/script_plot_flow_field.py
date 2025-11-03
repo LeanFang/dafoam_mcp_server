@@ -55,7 +55,7 @@ renderView1.CameraParallelScale = args.zoom_in_scale
 renderView1.Background = [1.0, 1.0, 1.0]
 
 # set scalar coloring
-ColorBy(paraviewfoamDisplay, ('POINTS', args.variable))
+ColorBy(paraviewfoamDisplay, ("POINTS", args.variable))
 
 # show color bar/color legend
 paraviewfoamDisplay.SetScalarBarVisibility(renderView1, True)
@@ -67,15 +67,19 @@ pLUT = GetColorTransferFunction(args.variable)
 pLUTColorBar = GetScalarBar(pLUT, renderView1)
 
 # change scalar bar placement
-pLUTColorBar.Orientation = 'Horizontal'
+pLUTColorBar.Orientation = "Horizontal"
 pLUTColorBar.Position = [0.0, 0.5]
 pLUTColorBar.ScalarBarLength = 0.8
 
-pLUTColorBar.TitleFontSize = 10
-pLUTColorBar.LabelFontSize = 10
-pLUTColorBar.LabelFormat = '%g'
-pLUTColorBar.RangeLabelFormat = '%.3e'
+pLUTColorBar.TitleFontSize = 8
+pLUTColorBar.LabelFontSize = 8
+pLUTColorBar.LabelFormat = "%g"
+pLUTColorBar.RangeLabelFormat = "%.3e"
 pLUTColorBar.ScalarBarThickness = 8
+pLUTColorBar.TitleColor = [0, 0, 0]
+pLUTColorBar.LabelColor = [0, 0, 0]
+
+text1 = Text(registrationName=f"Flow Field: {args.variable}")
 
 # go to the specific frame
 if args.frame == -1:
@@ -93,6 +97,15 @@ if args.frame == -1:
         else:
             iterI = "Final"
 
+        text1.Text = f"Flow Field: {args.variable}. Iteration: {iterI}"
+        text1Display = Show(text1, renderView1, "TextSourceRepresentation")
+        renderView1.Update()
+        text1Display.FontSize = 35
+        text1Display.WindowLocation = "UpperCenter"
+        text1Display.Bold = 1
+        text1Display.FontFamily = "Arial"
+        text1Display.Color = [0.0, 0.0, 0.0]
+
         # save screenshot
         SaveScreenshot(f"./plots/airfoil_flow_field_{iterI}.png", renderView1, ImageResolution=[1200, 1000])
 
@@ -104,6 +117,15 @@ else:
         iterI = "Final"
     animationScene1.AnimationTime = time_value
     UpdatePipeline()
+
+    text1.Text = f"Flow Field: {args.variable}. Iteration: {iterI}"
+    text1Display = Show(text1, renderView1, "TextSourceRepresentation")
+    renderView1.Update()
+    text1Display.FontSize = 35
+    text1Display.WindowLocation = "UpperCenter"
+    text1Display.Bold = 1
+    text1Display.FontFamily = "Arial"
+    text1Display.Color = [0.0, 0.0, 0.0]
 
     # save screenshot
     SaveScreenshot(f"./plots/airfoil_flow_field_{iterI}.png", renderView1, ImageResolution=[1200, 1000])
