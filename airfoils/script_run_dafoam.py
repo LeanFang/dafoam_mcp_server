@@ -200,7 +200,7 @@ class Top(Multipoint):
         # define the design variables to the top level
         self.add_design_var("shape", lower=-1.0, upper=1.0, scaler=10.0)
         # here we fix the U0 magnitude and allows the aoa to change
-        self.add_design_var("patchV", lower=[U0, 0.0], upper=[U0, 10.0], scaler=0.1)
+        self.add_design_var("patchV", lower=[U0, -10.0], upper=[U0, 10.0], scaler=0.1)
 
         # add objective and constraints to the top level
         self.add_objective("scenario1.aero_post.CD", scaler=1.0)
@@ -246,6 +246,7 @@ elif args.optimizer == "IPOPT":
         "nlp_scaling_method": "none",
         "alpha_for_y": "full",
         "recalc_y": "yes",
+        "bound_frac": 1e-3,  # allow IPOPT to use init dv closer to upper bound
     }
 elif args.optimizer == "SLSQP":
     prob.driver.opt_settings = {
@@ -264,7 +265,12 @@ prob.driver.hist_file = "OptView.hst"
 if args.task == "run_driver":
     # solve CL
     optFuncs.findFeasibleDesign(
-        ["scenario1.aero_post.CL"], ["patchV"], targets=[lift_constraint], designVarsComp=[1], epsFD=[1e-2], tol=1e-3
+        ["scenario1.aero_post.CL"],
+        ["patchV"],
+        targets=[lift_constraint * 1.001],
+        designVarsComp=[1],
+        epsFD=[1e-2],
+        tol=1e-3,
     )
     # run the optimization
     prob.run_driver()
