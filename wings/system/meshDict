@@ -1,0 +1,95 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                |
+| \\      /  F ield         | cfMesh: A library for mesh generation          |
+|  \\    /   O peration     |                                                |
+|   \\  /    A nd           | Author: Franjo Juretic                         |
+|    \\/     M anipulation  | E-mail: franjo.juretic@c-fields.com            |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version   2.0;
+    format    ascii;
+    class     dictionary;
+    location  "system";
+    object    meshDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+surfaceFile "constant/triSurface/domain.stl";
+
+maxCellSize 1.;
+
+localRefinement
+{
+    wing
+    {
+    additionalRefinementLevels 5;
+    }
+    tip
+    {
+    additionalRefinementLevels 6;
+    }
+    te
+    {
+    additionalRefinementLevels 7;
+    }
+}
+
+objectRefinements
+{
+  //wake
+  //{
+  //  additionalRefinementLevels 3;
+  //  type box;
+  //  centre (0 0 0);
+  //  lengthX 6.;
+  //  lengthY 0.36;
+  //  lengthZ 6.;
+  //}
+}
+
+renameBoundary
+{
+  defaultName inout;
+  defaultType patch;
+  newPatchNames
+  {
+    "(wing|te|tip)"
+    {
+      newName wing;
+      type wall;
+    }
+    zMin
+    {
+      newName symmetry;
+      type symmetry;
+    }
+  }
+}
+
+boundaryLayers
+{
+  patchBoundaryLayers
+  {
+    "(wing|tip|te)"
+    {
+      allowDiscontinuity 1;
+      nLayers 12;
+      thicknessRatio 1.3;
+    }
+  }
+
+  optimiseLayer 1;
+
+  optimisationParameters
+  {
+      nSmoothNormals 3;
+      maxNumIterations 2;
+      featureSizeFactor 0.4;
+      reCalculateNormals 1;
+      relThicknessTol 0.1;
+  }
+
+}
