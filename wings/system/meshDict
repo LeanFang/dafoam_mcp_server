@@ -17,23 +17,29 @@ FoamFile
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-surfaceFile "constant/triSurface/domain.stl";
+surfaceFile "domain.stl";
 
 maxCellSize 1.;
 
 localRefinement
 {
-    wing
+    wing_upper
     {
-    additionalRefinementLevels 5;
+        additionalRefinementLevels 5;
+        refinementThickness         0.1;
+    }
+    wing_lower
+    {
+        additionalRefinementLevels 5;
+        refinementThickness         0.1;
     }
     tip
     {
-    additionalRefinementLevels 6;
+        additionalRefinementLevels 5;
     }
     te
     {
-    additionalRefinementLevels 7;
+        additionalRefinementLevels 5;
     }
 }
 
@@ -56,7 +62,7 @@ renameBoundary
   defaultType patch;
   newPatchNames
   {
-    "(wing|te|tip)"
+    "(wing.*|te|tip)"
     {
       newName wing;
       type wall;
@@ -73,11 +79,12 @@ boundaryLayers
 {
   patchBoundaryLayers
   {
-    "(wing|tip|te)"
+    "(wing.*|tip|te)"
     {
       allowDiscontinuity 1;
-      nLayers 12;
+      nLayers 10;
       thicknessRatio 1.3;
+      //maxFirstLayerThickness 1e-4;
     }
   }
 

@@ -63,9 +63,10 @@ for surf in surfaces:
         f"ymin={bbox[1]:.4f}, ymax={bbox[4]:.4f}, zmin={bbox[2]:.4f}, zmax={bbox[5]:.4f}"
     )
 
-gmsh.model.addPhysicalGroup(2, [1, 2], tag=1, name="wing")  # Main wing surfaces
-gmsh.model.addPhysicalGroup(2, [3], tag=2, name="te")  # TE surface
-gmsh.model.addPhysicalGroup(2, [4, 5], tag=3, name="tip")  # TE surface
+gmsh.model.addPhysicalGroup(2, [1], tag=1, name="wing_upper")  # Main wing surfaces
+gmsh.model.addPhysicalGroup(2, [2], tag=2, name="wing_lower")  # Main wing surfaces
+gmsh.model.addPhysicalGroup(2, [3], tag=3, name="te")  # TE surface
+gmsh.model.addPhysicalGroup(2, [4, 5], tag=4, name="tip")  # TE surface
 gmsh.option.setNumber("Geometry.Tolerance", 1e-8)
 gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", 100)
 gmsh.option.setNumber("Mesh.MeshSizeMin", 0.005)
