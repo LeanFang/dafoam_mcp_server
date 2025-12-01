@@ -18,6 +18,7 @@ logging.basicConfig(level=logging.CRITICAL)
 mcp = FastMCP("dafoam_mcp_server")
 
 airfoil_path = "/home/dafoamuser/mount/airfoils/"
+wing_path = "/home/dafoamuser/mount/wings/"
 
 
 @mcp.tool()
@@ -111,6 +112,7 @@ async def airfoil_generate_mesh(
         # Create HTML wrapper using multi-image function
         html_filename = "airfoil_mesh_all_views.html"
         create_image_html(
+            airfoil_path,
             ["plots/airfoil_mesh_overview.png", "plots/airfoil_mesh_le.png", "plots/airfoil_mesh_te.png"],
             html_filename,
         )
@@ -118,7 +120,7 @@ async def airfoil_generate_mesh(
         return (
             download_message,
             "Mesh successfully generated for {airfoil_profile}!\n\n"
-            f"View the mesh: http://localhost:{FILE_HTTP_PORT}/{html_filename}",
+            f"View the mesh: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}",
         )
 
     except subprocess.CalledProcessError as e:
@@ -289,11 +291,11 @@ async def airfoil_view_flow_field(
         # Create a single HTML with both images
         html_filename = "airfoil_flow_field.html"
         image_names = glob.glob(f"{airfoil_path}/plots/airfoil_flow_field*.png")
-        create_image_html(sorted(image_names, reverse=True), html_filename)
+        create_image_html(airfoil_path, sorted(image_names, reverse=True), html_filename)
 
         return (
             "Flow field plots successfully generated!\n\n"
-            f"View convergence: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}"
         )
 
     except subprocess.CalledProcessError as e:
@@ -335,11 +337,11 @@ async def airfoil_view_optimization_history():
             "plots/airfoil_opt_hst_optimality.png",
             "plots/airfoil_opt_hst_feasibility.png",
         ]
-        create_image_html(image_files, html_filename)
+        create_image_html(airfoil_path, image_files, html_filename)
 
         return (
             "Optimization history plots successfully generated!\n\n"
-            f"View convergence: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}"
         )
 
     except subprocess.CalledProcessError as e:
@@ -396,11 +398,11 @@ async def airfoil_view_convergence(
         ]
         if log_file == "log_optimization.txt":
             image_files.append("plots/airfoil_residual_adjoint.png")
-        create_image_html(image_files, html_filename)
+        create_image_html(airfoil_path, image_files, html_filename)
 
         return (
             "Residual and function plots successfully generated!\n\n"
-            f"View convergence: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}"
         )
 
     except subprocess.CalledProcessError as e:
@@ -440,11 +442,11 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
         # Create HTML wrapper using multi-image function
         html_filename = "airfoil_pressure_profile.html"
         image_names = glob.glob(f"{airfoil_path}/plots/airfoil_pressure_profile*.png")
-        create_image_html(sorted(image_names, reverse=True), html_filename)
+        create_image_html(airfoil_path, sorted(image_names, reverse=True), html_filename)
 
         return (
             "Pressure profile successfully generated!\n\n"
-            f"View the result: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
+            f"View the result: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}"
         )
 
     except subprocess.CalledProcessError as e:
@@ -486,11 +488,88 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
 
         # Create HTML wrapper using multi-image function
         html_filename = "airfoil_mesh.html"
-        create_image_html(["plots/airfoil_mesh.png"], html_filename)
+        create_image_html(airfoil_path, ["plots/airfoil_mesh.png"], html_filename)
 
         return (
             "Mesh visualization successfully generated!\n\n"
-            f"View the result: http://localhost:{FILE_HTTP_PORT}/{html_filename}"
+            f"View the result: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}"
+        )
+
+    except subprocess.CalledProcessError as e:
+        return f"Error occurred!\n\nStderr:\n{e.stderr}"
+
+
+@mcp.tool()
+async def wing_generate_geometry(
+    spanwise_airfoil_profiles: list[str] = ["naca0012", "naca0012"],
+    spanwise_chords: list[float] = [1.0, 1.0],
+    spanwise_x: list[float] = [0.0, 0.0],
+    spanwise_y: list[float] = [0.0, 0.0],
+    spanwise_z: list[float] = [0.0, 3.0],
+    spanwise_twists: list[float] = [0.0, 0.0],
+) -> str:
+    """
+    Wing module:
+        Generate wing geometry using pyGeo and gmsh. Here we assume x is the flow direction, y is the airfoil vertical direction,
+        and z is the wing spanwise direction.
+
+    Args:
+        spanwise_airfoil_profiles:
+            Airfoil profiles for each spanwise section (e.g., ["naca0012", "naca0012"])
+        spanwise_chords:
+            Airfoil chords for each spanwise section.
+        spanwise_x:
+            X coordinates for each spanwise section
+        spanwise_y:
+            Y coordinates for each spanwise section
+        spanwise_z:
+            Z coordinates for each spanwise section
+        spanwise_twists:
+            Twist angles for each spanwise section
+
+    Returns:
+        Status message and list of generated files. Must show the link in bold to users.
+    """
+
+    # Build command line arguments
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd {wing_path} && "
+        f"python script_generate_geometry.py "
+        f"-spanwise_airfoil_profiles {' '.join(map(str, spanwise_airfoil_profiles))} "
+        f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
+        f"-spanwise_x {' '.join(map(str, spanwise_x))} "
+        f"-spanwise_y {' '.join(map(str, spanwise_y))} "
+        f"-spanwise_z {' '.join(map(str, spanwise_z))} "
+        f"-spanwise_twists {' '.join(map(str, spanwise_twists))} && "
+        f"pvpython script_plot_geometry.py "
+        f"-spanwise_z {' '.join(map(str, spanwise_z))} "
+        f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
+    )
+
+    try:
+        # run in non-blocking mode
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+        )
+
+        # Create HTML wrapper using multi-image function
+        html_filename = "wing_geometry_all_views.html"
+        create_image_html(
+            wing_path,
+            [
+                "plots/wing_geometry_view_3d.png",
+                "plots/wing_geometry_view_y.png",
+                "plots/wing_geometry_view_x.png",
+                "plots/wing_geometry_view_z.png",
+            ],
+            html_filename,
+        )
+
+        return (
+            "Wing geometry is successfully generated!\n\n"
+            f"View the geometry at: http://localhost:{FILE_HTTP_PORT}/wing/{html_filename}"
         )
 
     except subprocess.CalledProcessError as e:
@@ -518,10 +597,35 @@ def check_run_status():
 
 
 class CustomHTTPHandler(SimpleHTTPRequestHandler):
-    """Custom HTTP handler to serve files from airfoil_path"""
+    """Custom HTTP handler to serve files from both airfoil_path and wing_path"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=airfoil_path + "/plots/", **kwargs)
+    def translate_path(self, path):
+        """Translate URL path to local file path, using prefixes to distinguish directories"""
+        import urllib.parse
+        import os
+
+        # Remove query parameters and normalize
+        path = path.split("?", 1)[0]
+        path = path.split("#", 1)[0]
+        path = urllib.parse.unquote(path)
+
+        # Remove leading slash
+        if path.startswith("/"):
+            path = path[1:]
+
+        # Check for wing/ prefix
+        if path.startswith("wing/"):
+            relative_path = path[5:]  # Remove 'wing/' prefix
+            return os.path.join(wing_path, "plots", relative_path)
+
+        # Check for airfoil/ prefix
+        elif path.startswith("airfoil/"):
+            relative_path = path[8:]  # Remove 'airfoil/' prefix
+            return os.path.join(airfoil_path, "plots", relative_path)
+
+        # Default to airfoil directory for backward compatibility
+        else:
+            return os.path.join(airfoil_path, "plots", path)
 
     def log_message(self, format, *args):
         """Suppress HTTP server logs"""
@@ -548,11 +652,12 @@ def start_http_server():
         server_started = False
 
 
-def create_image_html(image_files: list, html_filename: str) -> str:
+def create_image_html(case_path: str, image_files: list, html_filename: str) -> str:
     """
     Create an HTML wrapper for multiple images displayed side by side with embedded base64 images
 
     Inputs:
+        case_path: airfoils for the Airfoil Module and wings for the Wing Module. Default: airfoils
         image_files: List of image filenames (e.g., ['image1.png', 'image2.png'])
         html_filename: name of the generated html file
     """
@@ -560,7 +665,7 @@ def create_image_html(image_files: list, html_filename: str) -> str:
     # Read all images and convert to base64
     image_data_list = []
     for i, image_filename in enumerate(image_files):
-        image_path = Path(airfoil_path) / image_filename
+        image_path = Path(case_path) / image_filename
         if not image_path.exists():
             continue
 
@@ -696,7 +801,7 @@ def create_image_html(image_files: list, html_filename: str) -> str:
 </body>
 </html>"""
 
-    html_path = Path(airfoil_path) / "plots" / html_filename
+    html_path = Path(case_path) / "plots" / html_filename
 
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
