@@ -3,25 +3,63 @@ import argparse
 import numpy as np
 import gmsh
 
+
 parser = argparse.ArgumentParser()
-parser.add_argument("-airfoil_profile", help="name of the airfoil profile", type=str, default="naca0012")
-parser.add_argument("-mesh_cells", help="number of mesh cells", type=int, default=50000)
-parser.add_argument("-y_plus", help="yPlus, the normalized near wall mesh size", type=float, default=3.0)
-parser.add_argument("-n_ffd_points", help="The number of FFD control points", type=int, default=10)
 parser.add_argument(
-    "-mach_number", help="The reference Mach number to estimate the near wall mesh size", type=float, default=0.1
+    "-spanwise_airfoil_profiles",
+    help="airfoil profiles for each spanwise section",
+    nargs="+",
+    type=str,
+    default=["naca0012", "naca0012"],
 )
+parser.add_argument(
+    "-spanwise_chords",
+    help="airfoil chords for each spanwise section",
+    nargs="+",
+    type=float,
+    default=[1.0, 1.0],
+)
+parser.add_argument(
+    "-spanwise_x",
+    help="airfoil x coordination for each spanwise section",
+    nargs="+",
+    type=float,
+    default=[0.0, 0.0],
+)
+parser.add_argument(
+    "-spanwise_y",
+    help="airfoil y coordination for each spanwise section",
+    nargs="+",
+    type=float,
+    default=[0.0, 0.0],
+)
+parser.add_argument(
+    "-spanwise_z",
+    help="airfoil z coordination for each spanwise section",
+    nargs="+",
+    type=float,
+    default=[0.0, 3.0],
+)
+parser.add_argument(
+    "-spanwise_twists",
+    help="airfoil profile twist for each spanwise section",
+    nargs="+",
+    type=float,
+    default=[0.0, 0.0],
+)
+
 args = parser.parse_args()
 
-nSections = 2
-airfoil_list = ["profiles/naca0012.dat", "profiles/naca0012.dat"]
-chord = [1.0, 1.0]
-x = [0, 0]
-y = [0, 0]
-z = [0, 3]
-rot_x = [0, 0, 0]
-rot_y = [0, 0, 0]
-rot_z = [0, 0, 0]
+nSections = len(args.spanwise_airfoil_profiles)
+# Prepend 'profiles/' folder to each airfoil name
+airfoil_list = [f"profiles/{airfoil}.dat" for airfoil in args.spanwise_airfoil_profiles]
+chord = args.spanwise_chords
+x = args.spanwise_x
+y = args.spanwise_y
+z = args.spanwise_z
+rot_x = np.zeros(nSections)
+rot_y = np.zeros(nSections)
+rot_z = args.spanwise_twists
 offset = np.zeros((nSections, 2))
 
 wing = pyGeo(
