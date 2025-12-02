@@ -535,6 +535,7 @@ async def wing_generate_geometry(
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {wing_path} && "
+        f"./Allclean.sh && "
         f"python script_generate_geometry.py "
         f"-spanwise_airfoil_profiles {' '.join(map(str, spanwise_airfoil_profiles))} "
         f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
@@ -570,6 +571,84 @@ async def wing_generate_geometry(
         return (
             "Wing geometry is successfully generated!\n\n"
             f"View the geometry at: http://localhost:{FILE_HTTP_PORT}/wing/{html_filename}"
+        )
+
+    except subprocess.CalledProcessError as e:
+        return f"Error occurred!\n\nStderr:\n{e.stderr}"
+
+
+@mcp.tool()
+async def wing_generate_mesh(
+    max_cell_size: float = 1.0,
+    mesh_refinement_level: int = 5,
+    n_boundary_layers: int = 10,
+    mean_chord: float = 1.0,
+    span: float = 3.0,
+) -> str:
+    """
+    Wing module:
+        Generate wing mesh using cfMesh. Here we assume x is the flow direction, y is the airfoil vertical direction,
+        and z is the wing spanwise direction.
+
+    Args:
+        max_cell_size:
+            The maximial cell size in the far field
+        mesh_refinement_level:
+            How many levels to refine the mesh. The higher the refinement the higher the mesh cells
+        n_boundary_layers:
+            How many mesh layer to capture the boundary layer
+        mean_chord:
+            The average chord for the wing. NOTE: this value must be consistent with the averaged chords
+            from the spanwise_chords args from the wing_generate_geometry function!
+        span:
+            The span for the wing. NOTE: this value must be consistent with the spanwise_z args
+            from the wing_generate_geometry function! span = spanwise_z[-1] - spanwise_z[0]
+
+    Returns:
+        Status message and list of generated files. Must show the link in bold to users.
+    """
+
+    # Build command line arguments
+    domain = mean_chord * 20.0
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd {wing_path} && "
+        f"sed -i 's/^maxCellSize.*/maxCellSize {max_cell_size};/' system/meshDict && "
+        f"sed -i 's/^refinementLevel.*/refinementLevel {mesh_refinement_level};/' system/meshDict && "
+        f"sed -i 's/^nBoundaryLayers.*/nBoundaryLayers {n_boundary_layers};/' system/meshDict && "
+        f"surfaceGenerateBoundingBox wing.stl domain.stl {domain} {domain} {domain} {domain} 0 {domain} > log_mesh.txt && "
+        f"cartesianMesh >> log_mesh.txt && "
+        f"renumberMesh -overwrite >> log_mesh.txt && "
+        f"checkMesh >> log_mesh.txt && "
+        f"cp -r 0_orig 0 && "
+        f"pvpython script_plot_mesh.py "
+        f"-mean_chord={mean_chord} "
+        f"-span={span} "
+    )
+
+    try:
+        # run in non-blocking mode
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+        )
+
+        # Create HTML wrapper using multi-image function
+        html_filename = "wing_mesh_all_views.html"
+        create_image_html(
+            wing_path,
+            [
+                "plots/wing_mesh_view_3d.png",
+                "plots/wing_mesh_view_y.png",
+                "plots/wing_mesh_view_x.png",
+                "plots/wing_mesh_view_z.png",
+            ],
+            html_filename,
+        )
+
+        return (
+            "Wing mesh is successfully generated!\n\n"
+            f"View the mesh at: http://localhost:{FILE_HTTP_PORT}/wing/{html_filename}"
         )
 
     except subprocess.CalledProcessError as e:

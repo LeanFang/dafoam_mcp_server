@@ -19,27 +19,29 @@ FoamFile
 
 surfaceFile "domain.stl";
 
-maxCellSize 1.;
+maxCellSize 1.0;
+
+refinementLevel 5;
+
+nBoundaryLayers 10;
 
 localRefinement
 {
     wing_upper
     {
-        additionalRefinementLevels 5;
-        refinementThickness         0.1;
+        additionalRefinementLevels $refinementLevel;
     }
     wing_lower
     {
-        additionalRefinementLevels 5;
-        refinementThickness         0.1;
+        additionalRefinementLevels $refinementLevel;
     }
     tip
     {
-        additionalRefinementLevels 5;
+        additionalRefinementLevels #calc "$refinementLevel + 1";
     }
     te
     {
-        additionalRefinementLevels 5;
+        additionalRefinementLevels $refinementLevel;
     }
 }
 
@@ -82,7 +84,7 @@ boundaryLayers
     "(wing.*|tip|te)"
     {
       allowDiscontinuity 1;
-      nLayers 10;
+      nLayers $nBoundaryLayers;
       thicknessRatio 1.3;
       //maxFirstLayerThickness 1e-4;
     }
