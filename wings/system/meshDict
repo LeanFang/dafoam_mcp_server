@@ -71,7 +71,7 @@ renameBoundary
     }
     zMin
     {
-      newName symmetry;
+      newName sym;
       type symmetry;
     }
   }

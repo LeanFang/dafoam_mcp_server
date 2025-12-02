@@ -27,7 +27,7 @@ boundaryField
         value           $internalField;
         blended         true;
     }
-    "symmetry.*"
+    sym
     {
         type            symmetry;
     }

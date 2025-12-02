@@ -10,6 +10,7 @@ import time
 import urllib.request
 import os
 import glob
+import re
 
 # Suppress all logging to stdout/stderr before MCP starts
 logging.basicConfig(level=logging.CRITICAL)
@@ -22,19 +23,19 @@ wing_path = "/home/dafoamuser/mount/wings/"
 
 
 @mcp.tool()
-async def airfoil_check_run_status():
+async def mcp_check_run_status(module: str):
     """
     Check whether the cfd simulation or optimization finished
 
     Inputs:
-        None
+        module: either "airfoil" or "wing"
     Outputs:
         finished:
             1 = the run finishes.
             0 = the run does not finish
     """
 
-    return check_run_status()
+    return check_run_status(module)
 
 
 @mcp.tool()
@@ -60,6 +61,7 @@ async def airfoil_generate_mesh(
             the reference Mach number to estimate the near wall mesh size. Default: 0.1
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
+        Mesh statistics. Must show them to users. Keep only one digit for non-orthogonality and skewness
     """
 
     # first check if the airfoil exists in the profiles folder
@@ -92,6 +94,7 @@ async def airfoil_generate_mesh(
         f"autoPatch 30 -overwrite >> log_mesh.txt && "
         f"createPatch -overwrite >> log_mesh.txt && "
         f"renumberMesh -overwrite >> log_mesh.txt && "
+        f"checkMesh >> log_mesh.txt && "
         f"cp -r 0_orig 0 && "
         f'transformPoints -scale "(1 1 0.01)" >> log_mesh.txt && '
         f"mv FFD.xyz FFD/ && "
@@ -109,6 +112,10 @@ async def airfoil_generate_mesh(
             None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         )
 
+        # Parse mesh statistics from log_mesh.txt
+        log_file_path = f"{airfoil_path}/log_mesh.txt"
+        mesh_stats = parse_mesh_statistics(log_file_path)
+
         # Create HTML wrapper using multi-image function
         html_filename = "airfoil_mesh_all_views.html"
         create_image_html(
@@ -120,6 +127,10 @@ async def airfoil_generate_mesh(
         return (
             download_message,
             "Mesh successfully generated for {airfoil_profile}!\n\n"
+            f"Mesh Statistics:\n"
+            f"  - Number of mesh cells: {mesh_stats['cells']}\n"
+            f"  - Mesh max non-orthogonality: {mesh_stats['max_non_orthogonality']:.2f}°\n"
+            f"  - Mesh max skewness: {mesh_stats['max_skewness']:.2f}\n\n"
             f"View the mesh: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}",
         )
 
@@ -139,7 +150,7 @@ async def airfoil_run_cfd_simulation(
     Inputs:
         cpu_cores:
             The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells,
-            and use one more core for every 10,000 more cells. Default: 1
+            and use one more core for every 10,000 more cells. Default: 1. DO NOT use more than 4 cores
         angle_of_attack:
             The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
         mach_number:
@@ -178,7 +189,7 @@ async def airfoil_run_cfd_simulation(
         return (
             "CFD simulation started in the background. "
             "Progress is being written to log_cfd_simulation.txt. "
-            "Use airfoil_check_run_status to check if it's finished."
+            "Use mcp_check_run_status to check if it's finished."
         )
 
     except Exception as e:
@@ -199,7 +210,7 @@ async def airfoil_run_optimization(
     Inputs:
         cpu_cores:
             The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells,
-            and use one more core for every 10,000 more cells. Default: 1
+            and use one more core for every 10,000 more cells. Default: 1. DO NOT use more than 4 cores
         angle_of_attack:
             The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
         mach_number:
@@ -239,7 +250,7 @@ async def airfoil_run_optimization(
         return (
             "Optimization started in the background. "
             "Progress is being written to log_optimization.txt."
-            "Use airfoil_check_run_status to check if it's finished."
+            "Use mcp_check_run_status to check if it's finished."
         )
     except Exception as e:
         return f"Error starting optimization: {str(e)}"
@@ -349,15 +360,17 @@ async def airfoil_view_optimization_history():
 
 
 @mcp.tool()
-async def airfoil_view_convergence(
-    log_file: str, start_time_cfd: int, end_time_cfd: int, start_time_adjoint: int, end_time_adjoint: int
+async def view_cfd_convergence(
+    module: str, log_file: str, start_time_cfd: int, end_time_cfd: int, start_time_adjoint: int, end_time_adjoint: int
 ):
     """
-    Airfoil Module:
+    Airfoil or Wing Module:
         Plot the cfd and adjoint (optional) residuals and function (such as CD, CL, and CM) convergence history
         by parsing the information from the log_file
 
     Inputs:
+        module:
+            The module can be either "airfoil" or "wing"
         log_file:
             log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
         start_time_cfd:
@@ -372,9 +385,14 @@ async def airfoil_view_convergence(
         Message indicating the status with HTML links. Must show the link in bold to users.
     """
 
+    if module == "airfoil":
+        case_path = airfoil_path
+    elif module == "wing":
+        case_path = wing_path
+
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
-        f"cd {airfoil_path} && "
+        f"cd {case_path} && "
         f"pvpython script_plot_residual.py "
         f"-log_file={log_file} -start_time_cfd={start_time_cfd} -end_time_cfd={end_time_cfd} "
         f"-start_time_adjoint={start_time_adjoint} -end_time_adjoint={end_time_adjoint} && "
@@ -398,11 +416,11 @@ async def airfoil_view_convergence(
         ]
         if log_file == "log_optimization.txt":
             image_files.append("plots/airfoil_residual_adjoint.png")
-        create_image_html(airfoil_path, image_files, html_filename)
+        create_image_html(case_path, image_files, html_filename)
 
         return (
             "Residual and function plots successfully generated!\n\n"
-            f"View convergence: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/{module}/{html_filename}"
         )
 
     except subprocess.CalledProcessError as e:
@@ -606,6 +624,7 @@ async def wing_generate_mesh(
 
     Returns:
         Status message and list of generated files. Must show the link in bold to users.
+        Mesh statistics. Must show them to users. Keep only one digit for non-orthogonality and skewness
     """
 
     # Build command line arguments
@@ -633,6 +652,10 @@ async def wing_generate_mesh(
             None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
         )
 
+        # Parse mesh statistics from log_mesh.txt
+        log_file_path = f"{wing_path}/log_mesh.txt"
+        mesh_stats = parse_mesh_statistics(log_file_path)
+
         # Create HTML wrapper using multi-image function
         html_filename = "wing_mesh_all_views.html"
         create_image_html(
@@ -648,31 +671,144 @@ async def wing_generate_mesh(
 
         return (
             "Wing mesh is successfully generated!\n\n"
-            f"View the mesh at: http://localhost:{FILE_HTTP_PORT}/wing/{html_filename}"
+            f"Mesh Statistics:\n"
+            f"  - Number of mesh cells: {mesh_stats['cells']}\n"
+            f"  - Mesh max non-orthogonality: {mesh_stats['max_non_orthogonality']:.2f}°\n"
+            f"  - Mesh max skewness: {mesh_stats['max_skewness']:.2f}\n\n"
+            f"View the mesh at: http://localhost:8001/wing/{html_filename}"
         )
 
     except subprocess.CalledProcessError as e:
         return f"Error occurred!\n\nStderr:\n{e.stderr}"
 
 
+@mcp.tool()
+async def wing_run_cfd_simulation(
+    cpu_cores: int = 1,
+    angle_of_attack: float = 2,
+    mach_number: float = 0.1,
+    reynolds_number: float = 1000000,
+    reference_area: float = 1.0,
+):
+    """
+    Wing module:
+        Run CFD simulation/analysis to compute flow fields,
+        such as velocity, pressure, and temperature.
+
+    Args:
+        cpu_cores:
+            The number of CPU cores to use. We should use 1 core for < 100,000 mesh cells,
+            and use one more core for every 100,000 more cells. DO NOT use more than 4 cores
+        angle_of_attack:
+            The angle of attack (aoa) boundary condition at the far field.
+        mach_number:
+            The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions.
+        reynolds_number:
+            The Reynolds number, users can also use Re to denote the Reynolds number.
+        reference_area:
+            The reference area for normalizing forces. If users do not prescribe it, approximate it as ref_area = mean_chord * span
+    Returns:
+        A message saying that the cfd simulation is running in the background
+        and the progress is written to log_cfd_simulation.txt
+    """
+
+    if mach_number < 0.6:
+        os.system(f"cp -r {wing_path}/system/fvSolution_subsonic {wing_path}/system/fvSolution")
+    else:
+        os.system(f"cp -r {wing_path}/system/fvSolution_transonic {wing_path}/system/fvSolution")
+
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd {wing_path} && "
+        f"rm -rf .dafoam_run_finished && "
+        f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py "
+        f"-angle_of_attack={angle_of_attack} "
+        f"-mach_number={mach_number} "
+        f"-reference_area={reference_area} "
+        f"-reynolds_number={reynolds_number} > log_cfd_simulation.txt 2>&1"
+    )
+
+    try:
+        # Run in non-blocking background mode
+        subprocess.Popen(
+            ["bash", "-c", bash_command],
+            stdout=subprocess.DEVNULL,  # Don't let child write to our stdout
+            stderr=subprocess.DEVNULL,  # Don't let child write to our stderr
+            stdin=subprocess.DEVNULL,  # Don't let child read from our stdin
+        )
+        return (
+            "CFD simulation started in the background. "
+            "Progress is being written to log_cfd_simulation.txt. "
+            "Use check_run_status to check if it's finished."
+        )
+
+    except Exception as e:
+        return f"Error starting CFD simulation: {str(e)}"
+
+
 # helper functions
-def check_run_status():
+def check_run_status(module: str):
     """
     Check whether the cfd simulation or optimization finished
 
     Inputs:
-        None
+        module: either "airfoil" or "wing"
     Outputs:
         finished: 1 = the run finishes. 0 = the run does not finish
     """
 
-    file_path = f"{airfoil_path}/.dafoam_run_finished"
+    if module == "airfoil":
+        case_path = airfoil_path
+    elif module == "wing":
+        case_path = wing_path
+
+    file_path = f"{case_path}/.dafoam_run_finished"
     path = Path(file_path).expanduser()
 
     if path.exists():
         return 1
     else:
         return 0
+
+
+def parse_mesh_statistics(log_file_path: str) -> dict:
+    """
+    Parse mesh statistics from the log_mesh.txt file.
+
+    Args:
+        log_file_path: Path to the log_mesh.txt file
+
+    Returns:
+        Dictionary containing:
+            - cells: number of mesh cells
+            - max_non_orthogonality: maximum non-orthogonality angle
+            - max_skewness: maximum skewness value
+    """
+
+    mesh_stats = {"cells": 0, "max_non_orthogonality": 0.0, "max_skewness": 0.0}
+
+    try:
+        with open(log_file_path, "r") as f:
+            lines = f.readlines()
+
+        search_started = 0
+        for line in lines:
+            if "checkMesh" in line:
+                search_started = 1
+            if search_started == 1:
+                if "cells:" in line:
+                    mesh_stats["cells"] = int(line.split()[1])
+                if "Mesh non-orthogonality Max:" in line:
+                    mesh_stats["max_non_orthogonality"] = float(line.split()[3])
+                if "skewness" in line:
+                    mesh_stats["max_skewness"] = float(line.split()[3].rstrip(","))
+
+    except FileNotFoundError:
+        print(f"Warning: Log file not found at {log_file_path}")
+    except Exception as e:
+        print(f"Warning: Error parsing log file: {str(e)}")
+
+    return mesh_stats
 
 
 class CustomHTTPHandler(SimpleHTTPRequestHandler):
