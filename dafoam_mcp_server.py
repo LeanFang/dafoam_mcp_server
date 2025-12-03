@@ -10,7 +10,6 @@ import time
 import urllib.request
 import os
 import glob
-import re
 
 # Suppress all logging to stdout/stderr before MCP starts
 logging.basicConfig(level=logging.CRITICAL)
@@ -40,7 +39,11 @@ async def mcp_check_run_status(module: str):
 
 @mcp.tool()
 async def airfoil_generate_mesh(
-    airfoil_profile: str, mesh_cells: int, y_plus: float, n_ffd_points: int, mach_number: float
+    airfoil_profile: str = "naca0012",
+    mesh_cells: int = 5000,
+    y_plus: float = 50.0,
+    n_ffd_points: int = 10,
+    mach_number: float = 0.1,
 ):
     """
     Airfoil module:
@@ -50,15 +53,14 @@ async def airfoil_generate_mesh(
     Inputs:
         airfoil_profile:
             The name of the airfoil profile, such as rae2822 or naca0012 (no spaces and all lower case letters).
-            Default: naca0012
         mesh_cells:
-            The number of mesh cells to generate. Default: 5000
+            The number of mesh cells to generate.
         y_plus:
-            the normalized near wall mesh size to capture boundary layer. Default: 50
+            the normalized near wall mesh size to capture boundary layer.
         n_ffd_points:
-            the Number of FFD control points to change the airfoil geometry. Default: 10
+            the Number of FFD control points to change the airfoil geometry.
         mach_number:
-            the reference Mach number to estimate the near wall mesh size. Default: 0.1
+            the reference Mach number to estimate the near wall mesh size.
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
         Mesh statistics. Must show them to users. Keep only one digit for non-orthogonality and skewness
@@ -140,7 +142,7 @@ async def airfoil_generate_mesh(
 
 @mcp.tool()
 async def airfoil_run_cfd_simulation(
-    cpu_cores: int, angle_of_attack: float, mach_number: float, reynolds_number: float
+    cpu_cores: int = 1, angle_of_attack: float = 3.0, mach_number: float = 0.1, reynolds_number: float = 1000000.0
 ):
     """
     Airfoil module:
@@ -150,14 +152,14 @@ async def airfoil_run_cfd_simulation(
     Inputs:
         cpu_cores:
             The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells,
-            and use one more core for every 10,000 more cells. Default: 1. DO NOT use more than 4 cores
+            and use one more core for every 10,000 more cells. DO NOT use more than 4 cores
         angle_of_attack:
-            The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
+            The angle of attack (aoa) boundary condition at the far field for the airfoil.
         mach_number:
             The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions.
-            We should use the same mach number set in the airfoil_generate_mesh call. Default: 0.1
+            We should use the same mach number set in the airfoil_generate_mesh call.
         reynolds_number:
-            The Reynolds number, users can also use Re to denote the Reynolds number. Default: 1000000
+            The Reynolds number, users can also use Re to denote the Reynolds number.
     Outputs:
         A message saying that the cfd simulation is running in the background
         and the progress is written to log_cfd_simulation.txt
@@ -198,7 +200,11 @@ async def airfoil_run_cfd_simulation(
 
 @mcp.tool()
 async def airfoil_run_optimization(
-    cpu_cores: int, angle_of_attack: float, mach_number: float, reynolds_number: float, lift_constraint: float
+    cpu_cores: int = 1,
+    angle_of_attack: float = 3.0,
+    mach_number: float = 0.1,
+    reynolds_number: float = 1000000.0,
+    lift_constraint: float = 0.5,
 ):
     """
     Airfoil module:
@@ -206,20 +212,21 @@ async def airfoil_run_optimization(
         Objective: drag coefficient.
         Design variables: airfoil shape and angle of attack.
         Constraints: lift, thickness, volume, and leading edge radius
+        NOTE: other optimization formulations are not supported at this moment!
 
     Inputs:
         cpu_cores:
             The number of CPU cores to use. We should use 1 core for < 10,000 mesh cells,
-            and use one more core for every 10,000 more cells. Default: 1. DO NOT use more than 4 cores
+            and use one more core for every 10,000 more cells. DO NOT use more than 4 cores
         angle_of_attack:
-            The angle of attack (aoa) boundary condition at the far field for the airfoil. Default: 3.0
+            The angle of attack (aoa) boundary condition at the far field for the airfoil.
         mach_number:
             The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions.
-            We should use the same mach number set in the airfoil_generate_mesh call. Default: 0.1
+            We should use the same mach number set in the airfoil_generate_mesh call.
         reynolds_number:
-            The Reynolds number, users can also use Re to denote the Reynolds number. Default: 1000000
+            The Reynolds number, users can also use Re to denote the Reynolds number.
         lift_constraint:
-            The lift constraint. Default: 0.5
+            The lift constraint.
     Outputs:
         A message saying that the optimization is running in the background
         and the progress is written to log_optimization.txt
@@ -258,7 +265,7 @@ async def airfoil_run_optimization(
 
 @mcp.tool()
 async def airfoil_view_flow_field(
-    x_location: float, y_location: float, zoom_in_scale: float, variable: str, frame: int
+    x_location: float = 0.5, y_location: float = 0.0, zoom_in_scale: float = 0.5, variable: str = "p", frame: int = -1
 ):
     """
     Airfoil module:
@@ -268,19 +275,19 @@ async def airfoil_view_flow_field(
     Inputs:
         x_location:
             where to zoom in to view the airfoil mesh details in the x direction.
-            Leading edge: x_location=0, mid chord: x_location=0.5, and trailing edge: x_location=1. Default: 0.5
+            Leading edge: x_location=0, mid chord: x_location=0.5, and trailing edge: x_location=1.
         y_location:
             where to zoom in to view the airfoil mesh details in the y direction.
-            Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
+            Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1).
         zoom_in_scale:
             how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more.
-            Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
+            Set a larger zoom_in_scale if users need to zoom out more.
         variable:
             which flow field variable to visualize. Options are "U": velocity, "T": temperature,
-            "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
+            "p": pressure, "nut": turbulence viscosity (turbulence variable).
         frame:
             which frame to view. The frame is the time-step for cfd simulation or
-            optimization iteration for optimization. Default: -1 (all frames)
+            optimization iteration for optimization. frame=-1 means all frames
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
@@ -361,7 +368,12 @@ async def airfoil_view_optimization_history():
 
 @mcp.tool()
 async def view_cfd_convergence(
-    module: str, log_file: str, start_time_cfd: int, end_time_cfd: int, start_time_adjoint: int, end_time_adjoint: int
+    module: str = "airfoil",
+    log_file: str = "log_cfd_simulation.txt",
+    start_time_cfd: int = 0,
+    end_time_cfd: int = -1,
+    start_time_adjoint: int = 0,
+    end_time_adjoint: int = -1,
 ):
     """
     Airfoil or Wing Module:
@@ -374,13 +386,13 @@ async def view_cfd_convergence(
         log_file:
             log_file=log_cfd_simulation.txt for CFD simulation. log_file=log_optimization.txt for optimization
         start_time_cfd:
-            the cfd start time index to plot. Default: 0
+            the cfd start time index to plot.
         end_time_cfd:
-            the cfd end time index to plot. Default: -1 (last time step)
+            the cfd end time index to plot. end_time_cfd=-1 means the last time step
         start_time_adjoint:
-            the adjoint start time index to plot. Default: 0
+            the adjoint start time index to plot.
         end_time_adjoint:
-            the adjoint end time index to plot. Default: -1 (last time step)
+            the adjoint end time index to plot. end_time_adjoint=-1 means the last time step
     Outputs:
         Message indicating the status with HTML links. Must show the link in bold to users.
     """
@@ -428,7 +440,7 @@ async def view_cfd_convergence(
 
 
 @mcp.tool()
-async def airfoil_view_pressure_profile(mach_number: float, frame: int):
+async def airfoil_view_pressure_profile(mach_number: float = 0.1, frame: int = -1):
     """
     Airfoil module:
         Plot the pressure profile (distribution) on the airfoil surface
@@ -439,7 +451,7 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
             airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
         frame:
             which frame to view. The frame is the time-step for cfd simulation or
-            optimization iteration for optimization. Default: -1 (all frames)
+            optimization iteration for optimization. frame=-1 means all frames
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
@@ -472,7 +484,7 @@ async def airfoil_view_pressure_profile(mach_number: float, frame: int):
 
 
 @mcp.tool()
-async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale: float):
+async def airfoil_view_mesh(x_location: float = 0.5, y_location: float = 0.0, zoom_in_scale: float = 0.5):
     """
     Airfoil module:
         Allow users to view detail airfoil meshes. The mesh must have been generated in airfoils
@@ -480,13 +492,13 @@ async def airfoil_view_mesh(x_location: float, y_location: float, zoom_in_scale:
     Inputs:
         x_location:
             where to zoom in to view the airfoil mesh details in the x direction.
-            Leading edge: x_location=0, mid chord: x_location=0.5, and trailing edge: x_location=1. Default: 0.5
+            Leading edge: x_location=0, mid chord: x_location=0.5, and trailing edge: x_location=1.
         y_location:
             where to zoom in to view the airfoil mesh details in the y direction.
-            Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1). Default: 0
+            Upper surface: y_location>0 (about 0.1), lower surface: y_location<0 (about -0.1).
         zoom_in_scale:
             how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more.
-            Set a larger zoom_in_scale if users need to zoom out more. Default: 0.5
+            Set a larger zoom_in_scale if users need to zoom out more.
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
@@ -852,7 +864,7 @@ async def wing_view_flow_field(mean_chord: float = 1.0, span: float = 3.0, varia
 
 
 # helper functions
-def check_run_status(module: str):
+def check_run_status(module: str = "airfoil"):
     """
     Check whether the cfd simulation or optimization finished
 
