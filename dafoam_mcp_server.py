@@ -746,6 +746,111 @@ async def wing_run_cfd_simulation(
         return f"Error starting CFD simulation: {str(e)}"
 
 
+@mcp.tool()
+async def wing_view_pressure_profile(
+    mach_number: float = 0.1, frame: int = -1, span: float = 3.0, spanwise_chords: list[float] = [1.0, 1.0, 1.0]
+):
+    """
+    Wing module:
+        Plot the pressure profile (distribution) at the 10%, 50%, and 90% of the wing span
+
+    Inputs:
+        mach_number:
+            The Mach number (Ma). We should use the same mach number set in the
+            airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
+        frame:
+            which frame to view. The frame is the time-step for cfd simulation or
+            optimization iteration for optimization. Default: -1 (all frames)
+        span:
+            The span for the wing. NOTE: this value must be consistent with the spanwise_z args
+            from the wing_generate_geometry function! span = spanwise_z[-1] - spanwise_z[0]
+        spanwise_chords:
+            Airfoil chords for the 10%, 50%, and 90% of the spanwise location. Here spanwise_chords MUST be a 3D array.
+            NOTE: the array's value must be consistent with the spanwise_chords args from the wing_generate_geometry
+            function! If only the root and tip chords are set in wing_generate_geometry's spanwise_chords, we need to
+            use linear  interpolation to get the chord at 10%, 50%, and 90% of the span. We MUST recompute these
+            values instead of using the default.
+    Outputs:
+        Message indicating the status with HTML link. Must show the link in bold to users.
+    """
+
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd {wing_path} && "
+        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -frame={frame} -span={span} "
+        f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
+    )
+
+    try:
+        # run in non-blocking mode
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+        )
+
+        # Create HTML wrapper using multi-image function
+        html_filename = "wing_pressure_profile.html"
+        image_names = glob.glob(f"{wing_path}/plots/wing_pressure_profile*.png")
+        create_image_html(wing_path, sorted(image_names, reverse=True), html_filename)
+
+        return (
+            "Pressure profile successfully generated!\n\n"
+            f"View the result: http://localhost:{FILE_HTTP_PORT}/wing/{html_filename}"
+        )
+
+    except subprocess.CalledProcessError as e:
+        return f"Error occurred!\n\nStderr:\n{e.stderr}"
+
+
+@mcp.tool()
+async def wing_view_flow_field(mean_chord: float = 1.0, span: float = 3.0, variable: str = "p"):
+    """
+    Wing module:
+        Allow users to view the details of a selected flow field variable.
+        The wing CFD simulation must have been done.
+
+    Inputs:
+        mean_chord:
+            The average chord for the wing. NOTE: this value must be consistent with the averaged chords
+            from the spanwise_chords args from the wing_generate_geometry function!
+        span:
+            The span for the wing. NOTE: this value must be consistent with the spanwise_z args
+            from the wing_generate_geometry function! span = spanwise_z[-1] - spanwise_z[0]
+        variable:
+            which flow field variable to visualize. Options are "U": velocity, "T": temperature,
+            "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
+
+    Outputs:
+        Message indicating the status with HTML link. Must show the link in bold to users.
+    """
+
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd {wing_path} && "
+        f"pvpython script_plot_flow_field.py -mean_chord={mean_chord} -span={span} -variable={variable}"
+    )
+
+    try:
+        # run in non-blocking mode
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+        )
+
+        # Create a single HTML with both images
+        html_filename = "wing_flow_field.html"
+        image_names = glob.glob(f"{wing_path}/plots/wing_flow_field*.png")
+        create_image_html(wing_path, sorted(image_names, reverse=True), html_filename)
+
+        return (
+            "Flow field plots successfully generated!\n\n"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/wing/{html_filename}"
+        )
+
+    except subprocess.CalledProcessError as e:
+        return f"Error occurred!\n\nStderr:\n{e.stderr}"
+
+
 # helper functions
 def check_run_status(module: str):
     """
