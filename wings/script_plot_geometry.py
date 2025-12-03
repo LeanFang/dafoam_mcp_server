@@ -57,6 +57,16 @@ renderView1.CameraParallelProjection = 1
 # Properties modified on renderView1
 # renderView1.Background = [1.0, 1.0, 1.0]
 
+text1 = Text(registrationName="Wing Geometry: Z view")
+text1.Text = f"Wing Geometry: Z view"
+text1Display = Show(text1, renderView1, "TextSourceRepresentation")
+renderView1.Update()
+text1Display.FontSize = 50
+text1Display.WindowLocation = "UpperCenter"
+text1Display.Bold = 1
+text1Display.FontFamily = "Arial"
+text1Display.Color = [0.0, 0.0, 0.0]
+
 # current camera placement for renderView1
 renderView1.CameraPosition = [mean_chord, 0.0, 10]
 renderView1.CameraFocalPoint = [mean_chord, 0.0, 0]
@@ -65,6 +75,9 @@ renderView1.CameraViewUp = [0.0, 1.0, 0.0]
 
 # save screenshot
 SaveScreenshot("plots/wing_geometry_view_z.png", renderView1, ImageResolution=[1923, 1158])
+
+text1.Text = f"Wing Geometry: Y view"
+renderView1.Update()
 
 # current camera placement for renderView1
 renderView1.CameraPosition = [mean_chord, 10.0, mean_span]
@@ -81,8 +94,14 @@ renderView1.CameraFocalPoint = [0, 0.0, mean_span]
 renderView1.CameraParallelScale = zoom_in_scale
 renderView1.CameraViewUp = [0.0, 1.0, 0.0]
 
+text1.Text = f"Wing Geometry: X view"
+renderView1.Update()
+
 # save screenshot
 SaveScreenshot("plots/wing_geometry_view_x.png", renderView1, ImageResolution=[1923, 1158])
+
+text1.Text = f"Wing Geometry: 3D view"
+renderView1.Update()
 
 # current camera placement for renderView1
 renderView1.CameraPosition = [mean_chord - 10.0, 10.0, mean_span + 10.0]

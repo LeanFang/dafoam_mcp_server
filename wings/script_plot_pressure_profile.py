@@ -25,7 +25,7 @@ args = parser.parse_args()
 # Parse spanwise_chords
 chords = args.spanwise_chords
 span_locations = [0.1 * args.span, 0.5 * args.span, 0.9 * args.span]
-span_labels = ["root", "mid", "tip"]
+span_labels = ["10_percent_span", "50_percent_span", "90_percent_span"]
 
 C0 = 347.2
 U0 = args.mach_number * C0
