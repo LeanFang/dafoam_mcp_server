@@ -59,7 +59,8 @@ y = args.spanwise_y
 z = args.spanwise_z
 rot_x = np.zeros(nSections)
 rot_y = np.zeros(nSections)
-rot_z = args.spanwise_twists
+# NOTE: we treat nose up as positive twist
+rot_z = -np.array(args.spanwise_twists)
 offset = np.zeros((nSections, 2))
 
 wing = pyGeo(

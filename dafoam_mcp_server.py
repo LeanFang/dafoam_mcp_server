@@ -614,6 +614,8 @@ async def wing_generate_mesh(
     n_boundary_layers: int = 10,
     mean_chord: float = 1.0,
     span: float = 3.0,
+    leading_edge_root: list[float] = [0.0, 0.0, 0.0],
+    leading_edge_tip: list[float] = [0.0, 0.0, 3.0],
 ) -> str:
     """
     Wing module:
@@ -633,6 +635,16 @@ async def wing_generate_mesh(
         span:
             The span for the wing. NOTE: this value must be consistent with the spanwise_z args
             from the wing_generate_geometry function! span = spanwise_z[-1] - spanwise_z[0]
+        leading_edge_root:
+            The coordinates for the leading edge at the wing root. It will be calculated based on spanwise_x,
+            spanwise_y, and spanwise_z from the wing_generate_geometry function. Here the size of spanwise_x
+            is the number of spanwise sections, if there are more than two sections prescribed, we will use
+            the first one (root section) and the last one (tip section).
+        leading_edge_tip:
+            The coordinates for the leading edge at the wing tip. It will be calculated based on spanwise_x,
+            spanwise_y, and spanwise_z from the wing_generate_geometry function. Here the size of spanwise_x
+            is the number of spanwise sections, if there are more than two sections prescribed, we will use
+            the first one (root section) and the last one (tip section).
 
     Returns:
         Status message and list of generated files. Must show the link in bold to users.
@@ -647,6 +659,8 @@ async def wing_generate_mesh(
         f"sed -i 's/^maxCellSize.*/maxCellSize {max_cell_size};/' system/meshDict && "
         f"sed -i 's/^refinementLevel.*/refinementLevel {mesh_refinement_level};/' system/meshDict && "
         f"sed -i 's/^nBoundaryLayers.*/nBoundaryLayers {n_boundary_layers};/' system/meshDict && "
+        f"sed -i 's/^le_p0.*/le_p0 ({leading_edge_root[0]} {leading_edge_root[1]} {leading_edge_root[2]});/' system/meshDict && "
+        f"sed -i 's/^le_p1.*/le_p1 ({leading_edge_tip[0]} {leading_edge_tip[1]} {leading_edge_tip[2]});/' system/meshDict && "
         f"surfaceGenerateBoundingBox wing.stl domain.stl {domain} {domain} {domain} {domain} 0 {domain} > log_mesh.txt && "
         f"cartesianMesh >> log_mesh.txt && "
         f"renumberMesh -overwrite >> log_mesh.txt && "

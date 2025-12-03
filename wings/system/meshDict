@@ -25,6 +25,10 @@ refinementLevel 5;
 
 nBoundaryLayers 10;
 
+le_p0 (0.0 0.0 0.0);
+
+le_p1 (0.0 0.0 3.0);
+
 localRefinement
 {
     wing_upper
@@ -37,25 +41,23 @@ localRefinement
     }
     tip
     {
-        additionalRefinementLevels #calc "$refinementLevel + 1";
+        additionalRefinementLevels #calc "$refinementLevel + 2";
     }
     te
     {
-        additionalRefinementLevels $refinementLevel;
+        additionalRefinementLevels #calc "$refinementLevel + 1";
     }
 }
 
 objectRefinements
 {
-  //wake
-  //{
-  //  additionalRefinementLevels 3;
-  //  type box;
-  //  centre (0 0 0);
-  //  lengthX 6.;
-  //  lengthY 0.36;
-  //  lengthZ 6.;
-  //}
+    le
+    {
+      type line;
+      additionalRefinementLevels #calc "$refinementLevel + 2";
+      p0 $le_p0;
+      p1 $le_p1;
+    }
 }
 
 renameBoundary
