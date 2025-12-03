@@ -60,6 +60,7 @@ daOptions = {
     "primalMinResTol": 1.0e-7,
     "primalMinResTolDiff": 1e3,
     "primalFuncStdTol": {"tol": 1e-5, "funcName": "CD", "nSteps": 50},
+    "primalMinIters": 50,
     "printInterval": 10,
     "primalBC": {
         "U0": {"variable": "U", "patches": ["inout"], "value": [U0, 0.0, 0.0]},
