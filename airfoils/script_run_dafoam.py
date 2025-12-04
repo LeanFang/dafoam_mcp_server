@@ -62,6 +62,7 @@ daOptions = {
     "primalFuncStdTol": {"tol": 1e-5, "funcName": "CD", "nSteps": 50},
     "primalMinIters": 50,
     "printInterval": 10,
+    "primalInitCondition": {"U": [U0, 0.0, 0.0], "p": p0, "T": T0},
     "primalBC": {
         "U0": {"variable": "U", "patches": ["inout"], "value": [U0, 0.0, 0.0]},
         "p0": {"variable": "p", "patches": ["inout"], "value": [p0]},
