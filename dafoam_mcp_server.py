@@ -665,6 +665,7 @@ async def wing_generate_mesh(
         f"cartesianMesh >> log_mesh.txt && "
         f"renumberMesh -overwrite >> log_mesh.txt && "
         f"checkMesh >> log_mesh.txt && "
+        f'foamToVTK -patches "(wing sym)" -one-boundary && '
         f"cp -r 0_orig 0 && "
         f"pvpython script_plot_mesh.py "
         f"-mean_chord={mean_chord} "
@@ -695,13 +696,17 @@ async def wing_generate_mesh(
             html_filename,
         )
 
+        # Start trame viewer on port 8002 for wing.
+        trame_url = start_trame_viewer(f"{wing_path}", "VTK/wings_0/boundary.vtp")
+
         return (
             "Wing mesh is successfully generated!\n\n"
             f"Mesh Statistics:\n"
             f"  - Number of mesh cells: {mesh_stats['cells']}\n"
             f"  - Mesh max non-orthogonality: {mesh_stats['max_non_orthogonality']:.2f}°\n"
             f"  - Mesh max skewness: {mesh_stats['max_skewness']:.2f}\n\n"
-            f"View the mesh at: http://localhost:8001/wing/{html_filename}"
+            f"View the mesh at: http://localhost:8001/wing/{html_filename} \n"
+            f"Interactive 3D viewer: {trame_url}"
         )
 
     except subprocess.CalledProcessError as e:
@@ -1181,6 +1186,38 @@ def download_airfoil_from_uiuc(airfoil_name, save_path):
 
     except Exception:
         return False
+
+
+def start_trame_viewer(case_path: str, mesh_file: str):
+    """
+    Start trame viewer in background process.
+    Python need to pip install vtk trame trame-vuetify trame-vtk --break-system-packages
+    """
+
+    port = 8002
+
+    # Kill any existing trame server on this port
+    kill_command = f"lsof -ti:{port} | xargs kill -9 2>/dev/null || true"
+    subprocess.run(["bash", "-c", kill_command], capture_output=True)
+
+    bash_command = (
+        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+        f"cd {case_path} && "
+        f"nohup python script_trame.py -mesh_file={mesh_file} "
+    )
+
+    try:
+        # run in non-blocking mode
+        subprocess.Popen(
+            ["bash", "-c", bash_command],
+            stdout=subprocess.DEVNULL,  # Don't let child write to our stdout
+            stderr=subprocess.DEVNULL,  # Don't let child write to our stderr
+            stdin=subprocess.DEVNULL,  # Don't let child read from our stdin
+        )
+    except Exception as e:
+        return f"Error starting CFD simulation: {str(e)}"
+
+    return f"http://127.0.0.1:{port}"
 
 
 # HTTP server configuration for file serving
