@@ -162,7 +162,7 @@ async def airfoil_generate_mesh(
 
         return (
             download_message,
-            "Mesh successfully generated for {airfoil_profile}!\n\n"
+            f"Mesh successfully generated for {airfoil_profile}!\n\n"
             f"Mesh Statistics:\n"
             f"  - Number of mesh cells: {mesh_stats['cells']}\n"
             f"  - Mesh max non-orthogonality: {mesh_stats['max_non_orthogonality']:.2f}°\n"
