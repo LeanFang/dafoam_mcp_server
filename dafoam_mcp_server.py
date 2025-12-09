@@ -11,14 +11,6 @@ import time
 import urllib.request
 import os
 import glob
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
-
-# Initialize embedding function with real embeddings
-embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
-# Load RAG at startup with embedding
-vectorstore = Chroma(persist_directory="/home/dafoamuser/dafoam_chroma_db", embedding_function=embedding)
 
 # Suppress all logging to stdout/stderr before MCP starts
 logging.basicConfig(level=logging.CRITICAL)
@@ -28,31 +20,6 @@ mcp = FastMCP("dafoam_mcp_server")
 
 airfoil_path = "/home/dafoamuser/mount/airfoils/"
 wing_path = "/home/dafoamuser/mount/wings/"
-
-
-@mcp.tool()
-async def search_dafoam_docs(query: str, k: int = 3):
-    """
-    Search local DAFoam documentation for information about DAFoam usage, installation,
-    tutorials, configuration, and technical details.
-
-    ALWAYS use this tool when the user asks about:
-    - DAFoam installation, setup, or configuration
-    - How to use DAFoam features or modules
-    - DAFoam tutorials or examples
-    - DAFoam technical details, solvers, or options
-    - Troubleshooting DAFoam issues
-    - Any DAFoam-specific questions
-
-    Args:
-        query: Keywords to search for in DAFoam documentation
-        k: Number of results to return (default: 3, increase for broader searches)
-
-    Returns:
-        Relevant documentation excerpts from DAFoam docs
-    """
-    docs = vectorstore.similarity_search(query, k=k)
-    return "\n\n---\n\n".join([doc.page_content for doc in docs])
 
 
 @mcp.tool()
@@ -574,8 +541,8 @@ async def wing_generate_geometry(
 ):
     """
     Wing module:
-        Generate wing geometry using pyGeo and gmsh. Here we assume x is the flow direction, y is the airfoil vertical direction,
-        and z is the wing spanwise direction.
+        Generate wing geometry using pyGeo and gmsh. Here we assume x is the flow direction, y is the airfoil
+        vertical direction, and z is the wing spanwise direction.
 
     Args:
         spanwise_airfoil_profiles:
@@ -686,16 +653,18 @@ async def wing_generate_mesh(
     """
 
     # Build command line arguments
-    domain = mean_chord * 20.0
+    L = mean_chord * 20.0
+    le_root = leading_edge_root
+    le_tip = leading_edge_tip
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {wing_path} && "
         f"sed -i 's/^maxCellSize.*/maxCellSize {max_cell_size};/' system/meshDict && "
         f"sed -i 's/^refinementLevel.*/refinementLevel {mesh_refinement_level};/' system/meshDict && "
         f"sed -i 's/^nBoundaryLayers.*/nBoundaryLayers {n_boundary_layers};/' system/meshDict && "
-        f"sed -i 's/^le_p0.*/le_p0 ({leading_edge_root[0]} {leading_edge_root[1]} {leading_edge_root[2]});/' system/meshDict && "
-        f"sed -i 's/^le_p1.*/le_p1 ({leading_edge_tip[0]} {leading_edge_tip[1]} {leading_edge_tip[2]});/' system/meshDict && "
-        f"surfaceGenerateBoundingBox wing.stl domain.stl {domain} {domain} {domain} {domain} 0 {domain} > log_mesh.txt && "
+        f"sed -i 's/^le_p0.*/le_p0 ({le_root[0]} {le_root[1]} {le_root[2]});/' system/meshDict && "
+        f"sed -i 's/^le_p1.*/le_p1 ({le_tip[0]} {le_tip[1]} {le_tip[2]});/' system/meshDict && "
+        f"surfaceGenerateBoundingBox wing.stl domain.stl {L} {L} {L} {L} 0 {L} > log_mesh.txt && "
         f"cartesianMesh >> log_mesh.txt && "
         f"renumberMesh -overwrite >> log_mesh.txt && "
         f"checkMesh >> log_mesh.txt && "
@@ -771,7 +740,8 @@ async def wing_run_cfd_simulation(
         reynolds_number:
             The Reynolds number, users can also use Re to denote the Reynolds number.
         reference_area:
-            The reference area for normalizing forces. If users do not prescribe it, approximate it as ref_area = mean_chord * span
+            The reference area for normalizing forces. If users do not prescribe it, approximate it as
+            ref_area = mean_chord * span
     Returns:
         A message saying that the cfd simulation is running in the background
         and the progress is written to log_cfd_simulation.txt
