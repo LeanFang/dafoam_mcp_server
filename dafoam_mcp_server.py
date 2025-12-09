@@ -1,4 +1,5 @@
 from mcp.server.fastmcp import FastMCP
+from typing import List
 import base64
 from pathlib import Path
 import subprocess
@@ -10,6 +11,14 @@ import time
 import urllib.request
 import os
 import glob
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
+
+# Initialize embedding function with real embeddings
+embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+# Load RAG at startup with embedding
+vectorstore = Chroma(persist_directory="/home/dafoamuser/dafoam_chroma_db", embedding_function=embedding)
 
 # Suppress all logging to stdout/stderr before MCP starts
 logging.basicConfig(level=logging.CRITICAL)
@@ -19,6 +28,31 @@ mcp = FastMCP("dafoam_mcp_server")
 
 airfoil_path = "/home/dafoamuser/mount/airfoils/"
 wing_path = "/home/dafoamuser/mount/wings/"
+
+
+@mcp.tool()
+async def search_dafoam_docs(query: str, k: int = 3):
+    """
+    Search local DAFoam documentation for information about DAFoam usage, installation,
+    tutorials, configuration, and technical details.
+
+    ALWAYS use this tool when the user asks about:
+    - DAFoam installation, setup, or configuration
+    - How to use DAFoam features or modules
+    - DAFoam tutorials or examples
+    - DAFoam technical details, solvers, or options
+    - Troubleshooting DAFoam issues
+    - Any DAFoam-specific questions
+
+    Args:
+        query: Keywords to search for in DAFoam documentation
+        k: Number of results to return (default: 3, increase for broader searches)
+
+    Returns:
+        Relevant documentation excerpts from DAFoam docs
+    """
+    docs = vectorstore.similarity_search(query, k=k)
+    return "\n\n---\n\n".join([doc.page_content for doc in docs])
 
 
 @mcp.tool()
@@ -531,13 +565,13 @@ async def airfoil_view_mesh(x_location: float = 0.5, y_location: float = 0.0, zo
 
 @mcp.tool()
 async def wing_generate_geometry(
-    spanwise_airfoil_profiles: list[str] = ["naca0012", "naca0012"],
-    spanwise_chords: list[float] = [1.0, 1.0],
-    spanwise_x: list[float] = [0.0, 0.0],
-    spanwise_y: list[float] = [0.0, 0.0],
-    spanwise_z: list[float] = [0.0, 3.0],
-    spanwise_twists: list[float] = [0.0, 0.0],
-) -> str:
+    spanwise_airfoil_profiles: List[str] = ["naca0012", "naca0012"],
+    spanwise_chords: List[float] = [1.0, 1.0],
+    spanwise_x: List[float] = [0.0, 0.0],
+    spanwise_y: List[float] = [0.0, 0.0],
+    spanwise_z: List[float] = [0.0, 3.0],
+    spanwise_twists: List[float] = [0.0, 0.0],
+):
     """
     Wing module:
         Generate wing geometry using pyGeo and gmsh. Here we assume x is the flow direction, y is the airfoil vertical direction,
@@ -614,9 +648,9 @@ async def wing_generate_mesh(
     n_boundary_layers: int = 10,
     mean_chord: float = 1.0,
     span: float = 3.0,
-    leading_edge_root: list[float] = [0.0, 0.0, 0.0],
-    leading_edge_tip: list[float] = [0.0, 0.0, 3.0],
-) -> str:
+    leading_edge_root: List[float] = [0.0, 0.0, 0.0],
+    leading_edge_tip: List[float] = [0.0, 0.0, 3.0],
+):
     """
     Wing module:
         Generate wing mesh using cfMesh. Here we assume x is the flow direction, y is the airfoil vertical direction,
@@ -779,7 +813,7 @@ async def wing_run_cfd_simulation(
 
 @mcp.tool()
 async def wing_view_pressure_profile(
-    mach_number: float = 0.1, frame: int = -1, span: float = 3.0, spanwise_chords: list[float] = [1.0, 1.0, 1.0]
+    mach_number: float = 0.1, frame: int = -1, span: float = 3.0, spanwise_chords: List[float] = [1.0, 1.0, 1.0]
 ):
     """
     Wing module:
@@ -1003,7 +1037,7 @@ def start_http_server():
         server_started = False
 
 
-def create_image_html(case_path: str, image_files: list, html_filename: str) -> str:
+def create_image_html(case_path: str, image_files: List, html_filename: str) -> str:
     """
     Create an HTML wrapper for multiple images displayed side by side with embedded base64 images
 
