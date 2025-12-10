@@ -46,7 +46,7 @@ wingstlDisplay.Representation = "Surface"
 ColorBy(wingstlDisplay, None)
 
 # get color transfer function/color map for 'STLSolidLabeling'
-sTLSolidLabelingLUT = GetColorTransferFunction('STLSolidLabeling')
+sTLSolidLabelingLUT = GetColorTransferFunction("STLSolidLabeling")
 
 # Hide the scalar bar for this color map if no visible data is colored by it.
 HideScalarBarIfNotNeeded(sTLSolidLabelingLUT, renderView1)

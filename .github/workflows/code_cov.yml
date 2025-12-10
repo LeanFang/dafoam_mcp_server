@@ -25,7 +25,7 @@ jobs:
           docker exec -i codecov_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/mount && pip install coverage"
           docker exec -i codecov_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/mount && coverage run --source=. --omit='tests/*' tests/integration_tests.py"
           docker exec -i codecov_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/mount && coverage xml"
-          docker exec -i codecov_container /bin/bash -c "cp /home/dafoamuser/mount/coverage.xml /home/dafoamuser/repo/"
+          docker cp codecov_container:/home/dafoamuser/mount/coverage.xml $GITHUB_WORKSPACE/coverage.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

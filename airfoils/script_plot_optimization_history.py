@@ -10,7 +10,8 @@ Outputs: airfoil_opt_hst_cd.png, airfoil_opt_hst_cl.png,
 import logging
 import shelve
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from sqlitedict import SqliteDict

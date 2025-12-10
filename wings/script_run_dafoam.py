@@ -23,7 +23,9 @@ parser.add_argument("-mach_number", help="mach number", type=float, default=0.3)
 parser.add_argument("-reynolds_number", help="Reynolds number", type=float, default=1000000.0)
 parser.add_argument("-lift_constraint", help="The lift constraint", type=float, default=0.5)
 parser.add_argument("-reference_area", help="The reference area for normalizing forces", type=float, default=1.0)
-parser.add_argument("-primal_func_std_tol", help="Primal function standard deviation tolerance", type=float, default=1e-4)
+parser.add_argument(
+    "-primal_func_std_tol", help="Primal function standard deviation tolerance", type=float, default=1e-4
+)
 args = parser.parse_args()
 
 # =============================================================================

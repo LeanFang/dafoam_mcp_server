@@ -29,29 +29,29 @@ mean_chord = args.mean_chord
 mean_span = span / 2.0
 
 # create a new 'OpenFOAMReader'
-paraviewfoam = OpenFOAMReader(registrationName='paraview.foam', FileName='paraview.foam')
+paraviewfoam = OpenFOAMReader(registrationName="paraview.foam", FileName="paraview.foam")
 
 # if it is a parallel run, choose Decomposed Case
 if os.path.exists("processor0"):
     paraviewfoam.CaseType = "Decomposed Case"
 
 # get active view
-renderView1 = GetActiveViewOrCreate('RenderView')
+renderView1 = GetActiveViewOrCreate("RenderView")
 
 # show data in view
-paraviewfoamDisplay = Show(paraviewfoam, renderView1, 'UnstructuredGridRepresentation')
+paraviewfoamDisplay = Show(paraviewfoam, renderView1, "UnstructuredGridRepresentation")
 
 # trace defaults for the display properties.
-paraviewfoamDisplay.Representation = 'Surface'
+paraviewfoamDisplay.Representation = "Surface"
 
 # Properties modified on renderView1
 renderView1.CameraParallelProjection = 1
 
 # Properties modified on paraviewfoam
-paraviewfoam.MeshRegions = ['symmetry', 'wing']
+paraviewfoam.MeshRegions = ["symmetry", "wing"]
 
 # white background
-#renderView1.Background = [1.0, 1.0, 1.0]
+# renderView1.Background = [1.0, 1.0, 1.0]
 
 # update the view to ensure updated data information
 renderView1.Update()
