@@ -727,6 +727,7 @@ async def wing_run_cfd_simulation(
     mach_number: float = 0.1,
     reynolds_number: float = 1000000,
     reference_area: float = 1.0,
+    primal_func_std_tol: float = 1e-4,
 ):
     """
     Wing module:
@@ -746,6 +747,8 @@ async def wing_run_cfd_simulation(
         reference_area:
             The reference area for normalizing forces. If users do not prescribe it, approximate it as
             ref_area = mean_chord * span
+        primal_func_std_tol:
+            Primal function standard deviation tolerance for convergence.
     Returns:
         A message saying that the cfd simulation is running in the background
         and the progress is written to log_cfd_simulation.txt
@@ -764,7 +767,8 @@ async def wing_run_cfd_simulation(
         f"-angle_of_attack={angle_of_attack} "
         f"-mach_number={mach_number} "
         f"-reference_area={reference_area} "
-        f"-reynolds_number={reynolds_number} > log_cfd_simulation.txt 2>&1"
+        f"-reynolds_number={reynolds_number} "
+        f"-primal_func_std_tol={primal_func_std_tol} > log_cfd_simulation.txt 2>&1"
     )
 
     try:

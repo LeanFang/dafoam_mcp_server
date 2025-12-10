@@ -23,6 +23,7 @@ parser.add_argument("-mach_number", help="mach number", type=float, default=0.3)
 parser.add_argument("-reynolds_number", help="Reynolds number", type=float, default=1000000.0)
 parser.add_argument("-lift_constraint", help="The lift constraint", type=float, default=0.5)
 parser.add_argument("-reference_area", help="The reference area for normalizing forces", type=float, default=1.0)
+parser.add_argument("-primal_func_std_tol", help="Primal function standard deviation tolerance", type=float, default=1e-4)
 args = parser.parse_args()
 
 # =============================================================================
@@ -60,7 +61,7 @@ daOptions = {
     "transonicPCOption": transonicPC,
     "primalMinResTol": 1.0e-7,
     "primalMinResTolDiff": 1e3,
-    "primalFuncStdTol": {"tol": 1e-4, "funcName": "CD", "nSteps": 50},
+    "primalFuncStdTol": {"tol": args.primal_func_std_tol, "funcName": "CD", "nSteps": 50},
     "primalMinIters": 50,
     "printInterval": 10,
     "primalInitCondition": {"U": [U0, 0.0, 0.0], "p": p0, "T": T0},

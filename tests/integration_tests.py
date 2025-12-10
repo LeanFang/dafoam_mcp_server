@@ -232,7 +232,7 @@ def test_wing_run_cfd_and_views():
     try:
         # Start CFD simulation
         print("  Starting wing CFD simulation...")
-        result = asyncio.run(wing_run_cfd_simulation())
+        result = asyncio.run(wing_run_cfd_simulation(primal_func_std_tol=1e-2))
         print(f"  Output: {result}")
 
         if "background" not in str(result).lower() and "started" not in str(result).lower():
