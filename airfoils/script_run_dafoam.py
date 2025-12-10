@@ -6,7 +6,6 @@
 import os
 import argparse
 import numpy as np
-import json
 from mpi4py import MPI
 import openmdao.api as om
 from mphys.multipoint import Multipoint
@@ -22,6 +21,7 @@ parser.add_argument("-angle_of_attack", help="angle of attack", type=float, defa
 parser.add_argument("-mach_number", help="mach number", type=float, default=0.3)
 parser.add_argument("-reynolds_number", help="Reynolds number", type=float, default=1000000.0)
 parser.add_argument("-lift_constraint", help="The lift constraint", type=float, default=0.5)
+parser.add_argument("-max_opt_iters", help="The max optimization iterations", type=int, default=20)
 args = parser.parse_args()
 
 # =============================================================================

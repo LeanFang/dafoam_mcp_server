@@ -206,6 +206,7 @@ async def airfoil_run_optimization(
     mach_number: float = 0.1,
     reynolds_number: float = 1000000.0,
     lift_constraint: float = 0.5,
+    max_opt_iters: int = 20,
 ):
     """
     Airfoil module:
@@ -228,6 +229,8 @@ async def airfoil_run_optimization(
             The Reynolds number, users can also use Re to denote the Reynolds number.
         lift_constraint:
             The lift constraint.
+        max_opt_iters:
+            The maximum number of optimization iterations to perform.
     Outputs:
         A message saying that the optimization is running in the background
         and the progress is written to log_optimization.txt
@@ -243,7 +246,8 @@ async def airfoil_run_optimization(
         f"cd {airfoil_path} && "
         f"rm -rf .dafoam_run_finished && "
         f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py -task=run_driver "
-        f"-angle_of_attack={angle_of_attack} -mach_number={mach_number} -reynolds_number={reynolds_number} "
+        f"-angle_of_attack={angle_of_attack} -mach_number={mach_number} "
+        f"-reynolds_number={reynolds_number} -max_opt_iters={max_opt_iters} "
         f"-lift_constraint={lift_constraint} > log_optimization.txt 2>&1"
     )
 

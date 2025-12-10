@@ -22,6 +22,9 @@ from dafoam_mcp_server import (
     airfoil_view_optimization_history,
     wing_generate_geometry,
     wing_generate_mesh,
+    wing_run_cfd_simulation,
+    wing_view_pressure_profile,
+    wing_view_flow_field,
 )
 
 
@@ -157,6 +160,114 @@ def test_airfoil_run_cfd_and_views():
         return False
 
 
+def test_airfoil_run_optimization_and_views():
+    """Test optimization and visualization functions that depend on it."""
+    print("Testing airfoil_run_optimization and related views...")
+
+    try:
+        # Start optimization
+        print("  Starting optimization...")
+        result = asyncio.run(airfoil_run_optimization(max_opt_iters=3))
+        print(f"  Output: {result}")
+
+        if "background" not in str(result).lower() and "started" not in str(result).lower():
+            print("[FAIL] Optimization did not start properly\n")
+            return False
+
+        # Wait for completion
+        print("  Waiting for optimization to complete...")
+        completed = asyncio.run(wait_for_run_completion(module="airfoil", timeout=1200, check_interval=10))
+
+        if not completed:
+            print("[FAIL] Optimization did not complete in time\n")
+            return False
+
+        # Test visualization function
+        print("  Testing airfoil_view_optimization_history...")
+        opt_result = asyncio.run(airfoil_view_optimization_history())
+        print(f"    Output: {opt_result}")
+
+        print("[PASS] airfoil_run_optimization_and_views PASSED\n")
+        return True
+
+    except Exception as e:
+        print(f"[FAIL] Exception: {str(e)}\n")
+        return False
+
+
+def test_wing_generate_geometry():
+    """Test wing_generate_geometry function."""
+    print("Testing wing_generate_geometry...")
+
+    try:
+        result = asyncio.run(wing_generate_geometry())
+        print(f"Output: {result}")
+        print("[PASS] wing_generate_geometry PASSED\n")
+        return True
+
+    except Exception as e:
+        print(f"[FAIL] Exception: {str(e)}\n")
+        return False
+
+
+def test_wing_generate_mesh():
+    """Test wing_generate_mesh function."""
+    print("Testing wing_generate_mesh...")
+
+    try:
+        result = asyncio.run(wing_generate_mesh())
+        print(f"Output: {result}")
+        print("[PASS] wing_generate_mesh PASSED\n")
+        return True
+
+    except Exception as e:
+        print(f"[FAIL] Exception: {str(e)}\n")
+        return False
+
+
+def test_wing_run_cfd_and_views():
+    """Test wing CFD simulation and visualization functions that depend on it."""
+    print("Testing wing_run_cfd_simulation and related views...")
+
+    try:
+        # Start CFD simulation
+        print("  Starting wing CFD simulation...")
+        result = asyncio.run(wing_run_cfd_simulation())
+        print(f"  Output: {result}")
+
+        if "background" not in str(result).lower() and "started" not in str(result).lower():
+            print("[FAIL] Wing CFD simulation did not start properly\n")
+            return False
+
+        # Wait for completion
+        print("  Waiting for wing CFD simulation to complete...")
+        completed = asyncio.run(wait_for_run_completion(module="wing", timeout=1200, check_interval=10))
+
+        if not completed:
+            print("[FAIL] Wing CFD simulation did not complete in time\n")
+            return False
+
+        # Test visualization functions that need CFD results
+        print("  Testing view_cfd_convergence for wing...")
+        conv_result = asyncio.run(view_cfd_convergence(module="wing"))
+        print(f"    Output: {conv_result}")
+
+        print("  Testing wing_view_pressure_profile...")
+        pressure_result = asyncio.run(wing_view_pressure_profile())
+        print(f"    Output: {pressure_result}")
+
+        print("  Testing wing_view_flow_field...")
+        flow_result = asyncio.run(wing_view_flow_field())
+        print(f"    Output: {flow_result}")
+
+        print("[PASS] wing_run_cfd_and_views PASSED\n")
+        return True
+
+    except Exception as e:
+        print(f"[FAIL] Exception: {str(e)}\n")
+        return False
+
+
 def run_all_tests():
     """Run all MCP function tests."""
     print("=" * 60)
@@ -168,6 +279,10 @@ def run_all_tests():
         ("airfoil_generate_mesh", test_airfoil_generate_mesh),
         ("airfoil_view_mesh", test_airfoil_view_mesh),
         ("airfoil_run_cfd_and_views", test_airfoil_run_cfd_and_views),
+        ("airfoil_run_optimization_and_views", test_airfoil_run_optimization_and_views),
+        ("wing_generate_geometry", test_wing_generate_geometry),
+        ("wing_generate_mesh", test_wing_generate_mesh),
+        ("wing_run_cfd_and_views", test_wing_run_cfd_and_views),
     ]
 
     passed = 0
