@@ -26,5 +26,5 @@ jobs:
     - name: Create container and run tests
       run: |
         docker run -i -d -u dafoamuser --name test_container -v $GITHUB_WORKSPACE:/home/dafoamuser/mount dafoam_mcp_server /bin/bash
-        docker exec -i test_container /bin/bash -c "chmod -R 777 /home/dafoamuser/mount/airfoils /home/dafoamuser/mount/wings"
-        docker exec -i test_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/mount && python tests/integration_tests.py"
+        docker exec -i test_container /bin/bash -c "rm -rf /home/dafoamuser/dafoam_mcp_server && mkdir -p /home/dafoamuser/dafoam_mcp_server && cp -r /home/dafoamuser/mount/* /home/dafoamuser/dafoam_mcp_server/"
+        docker exec -i test_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/dafoam_mcp_server && python tests/integration_tests.py"
