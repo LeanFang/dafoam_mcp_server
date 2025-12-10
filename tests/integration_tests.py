@@ -6,6 +6,7 @@ This test runs inside the Docker container.
 import asyncio
 from pathlib import Path
 import sys
+import time
 
 # Import all MCP functions
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -22,6 +23,31 @@ from dafoam_mcp_server import (
     wing_generate_geometry,
     wing_generate_mesh,
 )
+
+
+async def wait_for_run_completion(module="airfoil", timeout=600, check_interval=10):
+    """
+    Wait for CFD simulation or optimization to complete.
+
+    Args:
+        module: "airfoil" or "wing"
+        timeout: Maximum time to wait in seconds
+        check_interval: Time between status checks in seconds
+
+    Returns:
+        bool: True if completed, False if timeout
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        status = await mcp_check_run_status(module=module)
+        if status == 1:
+            print(f"  [{module}] Run completed")
+            return True
+        print(f"  [{module}] Still running... waiting {check_interval}s")
+        time.sleep(check_interval)
+
+    print(f"  [{module}] Timeout waiting for completion")
+    return False
 
 
 def test_airfoil_generate_mesh():
@@ -65,6 +91,72 @@ def test_airfoil_generate_mesh():
         return False
 
 
+def test_airfoil_view_mesh():
+    """Test airfoil_view_mesh function."""
+    print("Testing airfoil_view_mesh...")
+
+    try:
+        result = asyncio.run(airfoil_view_mesh())
+        print(f"Output: {result}")
+
+        # Check for expected output file
+        if Path("airfoils/plots/airfoil_mesh.png").exists():
+            print("  [PASS] Found: airfoils/plots/airfoil_mesh.png")
+            print("[PASS] airfoil_view_mesh PASSED\n")
+            return True
+        else:
+            print("  [FAIL] Missing: airfoils/plots/airfoil_mesh.png")
+            print("[FAIL] airfoil_view_mesh FAILED\n")
+            return False
+
+    except Exception as e:
+        print(f"[FAIL] Exception: {str(e)}\n")
+        return False
+
+
+def test_airfoil_run_cfd_and_views():
+    """Test CFD simulation and visualization functions that depend on it."""
+    print("Testing airfoil_run_cfd_simulation and related views...")
+
+    try:
+        # Start CFD simulation
+        print("  Starting CFD simulation...")
+        result = asyncio.run(airfoil_run_cfd_simulation())
+        print(f"  Output: {result}")
+
+        if "background" not in str(result).lower() and "started" not in str(result).lower():
+            print("[FAIL] CFD simulation did not start properly\n")
+            return False
+
+        # Wait for completion
+        print("  Waiting for CFD simulation to complete...")
+        completed = asyncio.run(wait_for_run_completion(module="airfoil", timeout=600, check_interval=10))
+
+        if not completed:
+            print("[FAIL] CFD simulation did not complete in time\n")
+            return False
+
+        # Test visualization functions that need CFD results
+        print("  Testing view_cfd_convergence...")
+        conv_result = asyncio.run(view_cfd_convergence(module="airfoil"))
+        print(f"    Output: {conv_result}")
+
+        print("  Testing airfoil_view_pressure_profile...")
+        pressure_result = asyncio.run(airfoil_view_pressure_profile())
+        print(f"    Output: {pressure_result}")
+
+        print("  Testing airfoil_view_flow_field...")
+        flow_result = asyncio.run(airfoil_view_flow_field())
+        print(f"    Output: {flow_result}")
+
+        print("[PASS] airfoil_run_cfd_and_views PASSED\n")
+        return True
+
+    except Exception as e:
+        print(f"[FAIL] Exception: {str(e)}\n")
+        return False
+
+
 def run_all_tests():
     """Run all MCP function tests."""
     print("=" * 60)
@@ -74,6 +166,8 @@ def run_all_tests():
     # Track test results
     tests = [
         ("airfoil_generate_mesh", test_airfoil_generate_mesh),
+        ("airfoil_view_mesh", test_airfoil_view_mesh),
+        ("airfoil_run_cfd_and_views", test_airfoil_run_cfd_and_views),
     ]
 
     passed = 0
