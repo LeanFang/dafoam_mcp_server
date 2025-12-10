@@ -1,0 +1,36 @@
+name: codecov
+
+on: [push, pull_request]
+
+env:
+  DOCKER_ENV_FILE: '/home/dafoamuser/dafoam/loadDAFoam.sh'
+
+jobs:
+  code_coverage:
+    runs-on: ubuntu-latest
+    name: Codecov
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull base Docker image
+        run: docker pull dafoam/opt-packages:mcp
+
+      - name: Build Docker image
+        run: docker build -t dafoam_mcp_server .
+
+      - name: Create container and run tests with coverage
+        run: |
+          docker run -i -d -u dafoamuser --name codecov_container -v $GITHUB_WORKSPACE:/home/dafoamuser/repo dafoam_mcp_server /bin/bash
+          docker exec -i codecov_container /bin/bash -c "mkdir -p /home/dafoamuser/mount && cp -r /home/dafoamuser/repo/* /home/dafoamuser/mount/"
+          docker exec -i codecov_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/mount && pip install coverage"
+          docker exec -i codecov_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/mount && coverage run --source=. --omit='tests/*' tests/integration_tests.py"
+          docker exec -i codecov_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/mount && coverage xml"
+          docker exec -i codecov_container /bin/bash -c "cp /home/dafoamuser/mount/coverage.xml /home/dafoamuser/repo/"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+          files: ./coverage.xml
+          token: ${{secrets.CODECOV_TOKEN}}
+          verbose: true

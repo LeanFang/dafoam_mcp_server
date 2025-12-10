@@ -1,11 +1,6 @@
 name: Test DAFoam MCP Server
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+on: [push, pull_request]
 
 env:
   DOCKER_ENV_FILE: '/home/dafoamuser/dafoam/loadDAFoam.sh'
