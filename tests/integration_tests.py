@@ -60,7 +60,11 @@ def test_airfoil_generate_mesh():
     try:
         result = asyncio.run(
             airfoil_generate_mesh(
-                airfoil_profile="naca0012", mesh_cells=5000, y_plus=50.0, n_ffd_points=10, mach_number=0.1
+                airfoil_profile="naca0012",
+                mesh_cells=5000,
+                y_plus=50.0,
+                n_ffd_points=10,
+                mach_number=0.1,
             )
         )
         print(f"Output: {result}")

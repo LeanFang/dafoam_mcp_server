@@ -383,7 +383,13 @@ def plot_all_figures(iterations, cd_values, cl_values, aoa_values, shape_vars):
                 # Plot all components if not too many
                 for i in range(n_vars):
                     ax.plot(
-                        iterations, var_data[:, i], "-o", linewidth=1.5, markersize=4, label=f"Component {i}", alpha=0.7
+                        iterations,
+                        var_data[:, i],
+                        "-o",
+                        linewidth=1.5,
+                        markersize=4,
+                        label=f"Component {i}",
+                        alpha=0.7,
                     )
                 ax.legend(ncol=2, fontsize=10, framealpha=0.9)
             else:
@@ -392,13 +398,24 @@ def plot_all_figures(iterations, cd_values, cl_values, aoa_values, shape_vars):
                 min_vals = np.min(var_data, axis=1)
                 max_vals = np.max(var_data, axis=1)
 
-                ax.plot(iterations, mean_vals, "b-o", linewidth=2, markersize=4, label="Mean")
+                ax.plot(
+                    iterations,
+                    mean_vals,
+                    "b-o",
+                    linewidth=2,
+                    markersize=4,
+                    label="Mean",
+                )
                 ax.fill_between(iterations, min_vals, max_vals, alpha=0.3, label="Min-Max Range")
                 ax.legend(fontsize=12, framealpha=0.9)
 
             ax.set_xlabel("Major Iteration", fontsize=16)
             ax.set_ylabel("FFD points displacements (shape)", fontsize=16)
-            ax.set_title(f"FFD Points Displacements History (n={n_vars} components)", fontsize=18, fontweight="bold")
+            ax.set_title(
+                f"FFD Points Displacements History (n={n_vars} components)",
+                fontsize=18,
+                fontweight="bold",
+            )
             ax.grid(True, alpha=0.3)
             ax.tick_params(axis="both", which="major", labelsize=14)
             ax.spines["right"].set_visible(False)

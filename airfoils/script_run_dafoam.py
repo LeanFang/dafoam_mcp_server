@@ -98,7 +98,11 @@ daOptions = {
         },
     },
     "adjStateOrdering": "cell",
-    "adjEqnOption": {"gmresRelTol": 1.0e-5, "pcFillLevel": 1, "jacMatReOrdering": "natural"},
+    "adjEqnOption": {
+        "gmresRelTol": 1.0e-5,
+        "pcFillLevel": 1,
+        "jacMatReOrdering": "natural",
+    },
     "normalizeStates": {
         "U": U0,
         "p": p0,
@@ -116,7 +120,11 @@ daOptions = {
             "components": ["solver", "function"],
         },
     },
-    "checkMeshThreshold": {"maxNonOrth": 70.0, "maxSkewness": 6.0, "maxAspectRatio": 10000.0},
+    "checkMeshThreshold": {
+        "maxNonOrth": 70.0,
+        "maxSkewness": 6.0,
+        "maxAspectRatio": 10000.0,
+    },
 }
 
 # Mesh deformation setup
@@ -124,7 +132,10 @@ meshOptions = {
     "gridFile": os.getcwd(),
     "fileType": "OpenFOAM",
     # point and normal for the symmetry plane
-    "symmetryPlanes": [[[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]], [[0.0, 0.0, 0.01], [0.0, 0.0, 1.0]]],
+    "symmetryPlanes": [
+        [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+        [[0.0, 0.0, 0.01], [0.0, 0.0, 1.0]],
+    ],
 }
 
 
@@ -179,7 +190,14 @@ class Top(Multipoint):
         # LE/TE shape, the j=0 and j=1 move in opposite directions so that
         # the LE/TE are fixed
         for i in [0, pts.shape[0] - 1]:
-            shapes.append({pts[i, 0, 0]: dir_y, pts[i, 0, 1]: dir_y, pts[i, 1, 0]: -dir_y, pts[i, 1, 1]: -dir_y})
+            shapes.append(
+                {
+                    pts[i, 0, 0]: dir_y,
+                    pts[i, 0, 1]: dir_y,
+                    pts[i, 1, 0]: -dir_y,
+                    pts[i, 1, 1]: -dir_y,
+                }
+            )
         self.geometry.nom_addShapeFunctionDV(dvName="shape", shapes=shapes)
 
         # setup the volume and thickness constraints
@@ -188,7 +206,11 @@ class Top(Multipoint):
         self.geometry.nom_addThicknessConstraints2D("thickcon", leList, teList, nSpan=2, nChord=10)
         self.geometry.nom_addVolumeConstraint("volcon", leList, teList, nSpan=2, nChord=10)
         self.geometry.nom_addLERadiusConstraints(
-            "rcon", [[0.01, 0.0, 1e-3], [0.01, 0.0, 0.01 - 1e-3]], 2, [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]
+            "rcon",
+            [[0.01, 0.0, 1e-3], [0.01, 0.0, 0.01 - 1e-3]],
+            2,
+            [0.0, 1.0, 0.0],
+            [-1.0, 0.0, 0.0],
         )
         # NOTE: we no longer need to define the sym and LE/TE constraints
         # because these constraints are defined in the above shape function

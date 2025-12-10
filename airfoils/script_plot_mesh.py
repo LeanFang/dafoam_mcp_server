@@ -8,8 +8,18 @@ import argparse
 paraview.simple._DisableFirstRenderCameraReset()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-x_location", help="the camera x_location in the x direction", type=float, default=0.5)
-parser.add_argument("-y_location", help="the camera y_location in the y direction", type=float, default=0.0)
+parser.add_argument(
+    "-x_location",
+    help="the camera x_location in the x direction",
+    type=float,
+    default=0.5,
+)
+parser.add_argument(
+    "-y_location",
+    help="the camera y_location in the y direction",
+    type=float,
+    default=0.0,
+)
 parser.add_argument("-zoom_in_scale", help="zoom in level", type=float, default=0.5)
 parser.add_argument("-plot_all_views", help="whether to plot all views", type=int, default=0)
 args = parser.parse_args()

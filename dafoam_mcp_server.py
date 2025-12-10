@@ -112,7 +112,8 @@ async def airfoil_generate_mesh(
         # run in non-blocking mode
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+            None,
+            lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
         # Parse mesh statistics from log_mesh.txt
@@ -123,7 +124,11 @@ async def airfoil_generate_mesh(
         html_filename = "airfoil_mesh_all_views.html"
         create_image_html(
             airfoil_path,
-            ["plots/airfoil_mesh_overview.png", "plots/airfoil_mesh_le.png", "plots/airfoil_mesh_te.png"],
+            [
+                "plots/airfoil_mesh_overview.png",
+                "plots/airfoil_mesh_le.png",
+                "plots/airfoil_mesh_te.png",
+            ],
             html_filename,
         )
 
@@ -143,7 +148,10 @@ async def airfoil_generate_mesh(
 
 @mcp.tool()
 async def airfoil_run_cfd_simulation(
-    cpu_cores: int = 1, angle_of_attack: float = 3.0, mach_number: float = 0.1, reynolds_number: float = 1000000.0
+    cpu_cores: int = 1,
+    angle_of_attack: float = 3.0,
+    mach_number: float = 0.1,
+    reynolds_number: float = 1000000.0,
 ):
     """
     Airfoil module:
@@ -270,7 +278,11 @@ async def airfoil_run_optimization(
 
 @mcp.tool()
 async def airfoil_view_flow_field(
-    x_location: float = 0.5, y_location: float = 0.0, zoom_in_scale: float = 0.5, variable: str = "p", frame: int = -1
+    x_location: float = 0.5,
+    y_location: float = 0.0,
+    zoom_in_scale: float = 0.5,
+    variable: str = "p",
+    frame: int = -1,
 ):
     """
     Airfoil module:
@@ -308,7 +320,8 @@ async def airfoil_view_flow_field(
         # run in non-blocking mode
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+            None,
+            lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
         # Create a single HTML with both images
@@ -347,7 +360,8 @@ async def airfoil_view_optimization_history():
         # run in non-blocking mode
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+            None,
+            lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
         # Create a single HTML with both images
@@ -420,7 +434,8 @@ async def view_cfd_convergence(
         # run in non-blocking mode
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+            None,
+            lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
         # Create a single HTML with both images
@@ -471,7 +486,8 @@ async def airfoil_view_pressure_profile(mach_number: float = 0.1, frame: int = -
         # run in non-blocking mode
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+            None,
+            lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
         # Create HTML wrapper using multi-image function
@@ -518,7 +534,8 @@ async def airfoil_view_mesh(x_location: float = 0.5, y_location: float = 0.0, zo
         # run in non-blocking mode
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+            None,
+            lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
         # Create HTML wrapper using multi-image function
@@ -587,7 +604,8 @@ async def wing_generate_geometry(
         # run in non-blocking mode
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+            None,
+            lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
         # Create HTML wrapper using multi-image function
@@ -683,7 +701,8 @@ async def wing_generate_mesh(
         # run in non-blocking mode
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+            None,
+            lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
         # Parse mesh statistics from log_mesh.txt
@@ -791,7 +810,10 @@ async def wing_run_cfd_simulation(
 
 @mcp.tool()
 async def wing_view_pressure_profile(
-    mach_number: float = 0.1, frame: int = -1, span: float = 3.0, spanwise_chords: List[float] = [1.0, 1.0, 1.0]
+    mach_number: float = 0.1,
+    frame: int = -1,
+    span: float = 3.0,
+    spanwise_chords: List[float] = [1.0, 1.0, 1.0],
 ):
     """
     Wing module:
@@ -828,7 +850,8 @@ async def wing_view_pressure_profile(
         # run in non-blocking mode
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+            None,
+            lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
         # Create HTML wrapper using multi-image function
@@ -877,7 +900,8 @@ async def wing_view_flow_field(mean_chord: float = 1.0, span: float = 3.0, varia
         # run in non-blocking mode
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
-            None, lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True)
+            None,
+            lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
         # Create a single HTML with both images

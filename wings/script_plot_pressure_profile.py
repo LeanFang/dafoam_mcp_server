@@ -126,7 +126,12 @@ if args.frame == -1:
             cp = (p - 101325.0) / coeff
 
             # Create figure with two subplots, share x-axis
-            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), gridspec_kw={"height_ratios": [2, 1], "hspace": 0.05})
+            fig, (ax1, ax2) = plt.subplots(
+                2,
+                1,
+                figsize=(10, 8),
+                gridspec_kw={"height_ratios": [2, 1], "hspace": 0.05},
+            )
 
             # Top plot: Cp vs x/c (complete distribution)
             ax1.set_title(
@@ -160,7 +165,11 @@ if args.frame == -1:
             ax2.spines["right"].set_visible(False)
 
             # Use frame index in filename to ensure unique names
-            plt.savefig(f"plots/wing_pressure_profile_{iterI}_{label}.png", dpi=200, bbox_inches="tight")
+            plt.savefig(
+                f"plots/wing_pressure_profile_{iterI}_{label}.png",
+                dpi=200,
+                bbox_inches="tight",
+            )
             plt.close()
 
             # Clean up
@@ -232,7 +241,11 @@ else:
         ax2.set_xlim([-0.05, 1.05])
         ax2.spines["top"].set_visible(False)
         ax2.spines["right"].set_visible(False)
-        plt.savefig(f"plots/airfoil_pressure_profile_{iterI}_{label}.png", dpi=200, bbox_inches="tight")
+        plt.savefig(
+            f"plots/airfoil_pressure_profile_{iterI}_{label}.png",
+            dpi=200,
+            bbox_inches="tight",
+        )
         plt.close()
 
         # Clean up

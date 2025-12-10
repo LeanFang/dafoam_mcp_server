@@ -98,4 +98,8 @@ renderView1.CameraParallelScale = zoom_in_scale
 renderView1.CameraViewUp = [1.0, 1.0, -1.0]
 
 # save screenshot
-SaveScreenshot(f"plots/wing_flow_field_{args.variable}_3d.png", renderView1, ImageResolution=[1923, 1158])
+SaveScreenshot(
+    f"plots/wing_flow_field_{args.variable}_3d.png",
+    renderView1,
+    ImageResolution=[1923, 1158],
+)

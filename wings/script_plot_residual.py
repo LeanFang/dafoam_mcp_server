@@ -107,7 +107,11 @@ plt.semilogy(
 # Add reference line for convergence tolerance
 plt.xlabel("Iteration", fontsize=20, fontweight="bold")
 plt.ylabel("Flow Residual", fontsize=20, fontweight="bold")
-plt.title("CFD Residual Convergence History (printed every 10 steps)", fontsize=20, fontweight="bold")
+plt.title(
+    "CFD Residual Convergence History (printed every 10 steps)",
+    fontsize=20,
+    fontweight="bold",
+)
 plt.legend(loc="best", fontsize=16, frameon=False)
 plt.grid(True, which="both", linestyle=":", alpha=0.6)
 plt.tick_params(axis="both", which="major", labelsize=20)
@@ -132,7 +136,11 @@ if len(adjoint_residuals) != 0:
     # Add reference line for convergence tolerance
     plt.xlabel("Iteration", fontsize=20, fontweight="bold")
     plt.ylabel("Adjoint Residual", fontsize=20, fontweight="bold")
-    plt.title("Adjoint Residual Convergence History (printed every 10 steps)", fontsize=20, fontweight="bold")
+    plt.title(
+        "Adjoint Residual Convergence History (printed every 10 steps)",
+        fontsize=20,
+        fontweight="bold",
+    )
     plt.grid(True, which="both", linestyle=":", alpha=0.6)
     plt.tick_params(axis="both", which="major", labelsize=20)
     ax = plt.gca()

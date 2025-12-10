@@ -1,4 +1,4 @@
-name: Test DAFoam MCP Server
+name: test
 
 on: [push, pull_request]
 

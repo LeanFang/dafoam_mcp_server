@@ -8,8 +8,18 @@ import argparse, os
 paraview.simple._DisableFirstRenderCameraReset()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-x_location", help="the camera x_location in the x direction", type=float, default=0.5)
-parser.add_argument("-y_location", help="the camera y_location in the y direction", type=float, default=0.0)
+parser.add_argument(
+    "-x_location",
+    help="the camera x_location in the x direction",
+    type=float,
+    default=0.5,
+)
+parser.add_argument(
+    "-y_location",
+    help="the camera y_location in the y direction",
+    type=float,
+    default=0.0,
+)
 parser.add_argument("-zoom_in_scale", help="zoom in level", type=float, default=0.5)
 parser.add_argument("-variable", help="flow field variable to plot", type=str, default="p")
 parser.add_argument("-frame", help="which frame to visualize", type=int, default=-1)
@@ -107,7 +117,11 @@ if args.frame == -1:
         text1Display.Color = [0.0, 0.0, 0.0]
 
         # save screenshot
-        SaveScreenshot(f"./plots/airfoil_flow_field_{iterI}.png", renderView1, ImageResolution=[1200, 1000])
+        SaveScreenshot(
+            f"./plots/airfoil_flow_field_{iterI}.png",
+            renderView1,
+            ImageResolution=[1200, 1000],
+        )
 
 else:
     time_value = args.frame * 0.0001
@@ -128,4 +142,8 @@ else:
     text1Display.Color = [0.0, 0.0, 0.0]
 
     # save screenshot
-    SaveScreenshot(f"./plots/airfoil_flow_field_{iterI}.png", renderView1, ImageResolution=[1200, 1000])
+    SaveScreenshot(
+        f"./plots/airfoil_flow_field_{iterI}.png",
+        renderView1,
+        ImageResolution=[1200, 1000],
+    )

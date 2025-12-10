@@ -10,7 +10,10 @@ parser.add_argument("-mesh_cells", help="number of mesh cells", type=int, defaul
 parser.add_argument("-y_plus", help="yPlus, the normalized near wall mesh size", type=float, default=3.0)
 parser.add_argument("-n_ffd_points", help="The number of FFD control points", type=int, default=10)
 parser.add_argument(
-    "-mach_number", help="The reference Mach number to estimate the near wall mesh size", type=float, default=0.1
+    "-mach_number",
+    help="The reference Mach number to estimate the near wall mesh size",
+    type=float,
+    default=0.1,
 )
 args = parser.parse_args()
 
@@ -41,7 +44,10 @@ except Exception:
 airfoil = Airfoil(coords)
 airfoil.makeBluntTE(xCut=0.99)
 coords = airfoil.getSampledPts(
-    n_surf_points, spacingFunc=sampling.conical, nTEPts=n_trailing_points, func_args={"coeff": distribution_coeff}
+    n_surf_points,
+    spacingFunc=sampling.conical,
+    nTEPts=n_trailing_points,
+    func_args={"coeff": distribution_coeff},
 )
 
 # Write surface mesh
