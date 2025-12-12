@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-mach_number", help="mach number", type=float, default=0.1)
-parser.add_argument("-frame", help="which frame to visualize", type=int, default=-1)
+parser.add_argument("-time_step", help="which time step to visualize", type=int, default=-1)
 parser.add_argument("-span", help="total span length", type=float, default=1.0)
 parser.add_argument(
     "-spanwise_chords",
@@ -65,10 +65,10 @@ renderView1.CameraParallelProjection = 1
 paraviewfoam.MeshRegions = ["patch/wing"]
 
 # Enable the pressure array for ParaView 5.13
-paraviewfoam.CellArrays = ['p']
+paraviewfoam.CellArrays = ["p"]
 
-# go to the specific frame
-if args.frame == -1:
+# go to the specific time step
+if args.time_step == -1:
     # Get all available time steps
     animationScene1 = GetAnimationScene()
     time_steps = animationScene1.TimeKeeper.TimestepValues
@@ -99,9 +99,10 @@ if args.frame == -1:
             multi_block_data = servermanager.Fetch(plotOnSortedLines1)
 
             # Navigate through the nested structure (ParaView 5.13)
-            patches = multi_block_data.GetBlock(0)
-            wing = patches.GetBlock(0)
-            data = wing
+            # For 2D airfoil: MultiBlock -> Block(0) -> Block(0) -> Block(0) to get to actual polydata
+            block0 = multi_block_data.GetBlock(0)
+            block1 = block0.GetBlock(0)
+            data = block1.GetBlock(0)
 
             # Now you can get the point data
             point_data = data.GetPointData()
@@ -176,7 +177,7 @@ if args.frame == -1:
             Delete(slice1)
 
 else:
-    time_value = args.frame * 0.0001
+    time_value = args.time_step * 0.0001
     if time_value < 1.0:
         iterI = "%04d" % int(time_value * 10000)
     else:
@@ -198,9 +199,13 @@ else:
 
         # Fetch and plot for specific frame (same code as in loop)
         multi_block_data = servermanager.Fetch(plotOnSortedLines1)
-        patches = multi_block_data.GetBlock(0)
-        wing = patches.GetBlock(0)
-        data = wing
+        
+        # Navigate through the nested structure (ParaView 5.13)
+        # For 2D airfoil: MultiBlock -> Block(0) -> Block(0) -> Block(0) to get to actual polydata
+        block0 = multi_block_data.GetBlock(0)
+        block1 = block0.GetBlock(0)
+        data = block1.GetBlock(0)
+
         point_data = data.GetPointData()
         n_points = data.GetNumberOfPoints()
         points = np.array([data.GetPoint(i) for i in range(n_points)])

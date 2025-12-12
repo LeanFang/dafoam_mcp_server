@@ -281,8 +281,8 @@ async def airfoil_view_flow_field(
     x_location: float = 0.5,
     y_location: float = 0.0,
     zoom_in_scale: float = 0.5,
-    variable: str = "p",
-    frame: int = -1,
+    flow_field: str = "p",
+    time_step: int = -1,
 ):
     """
     Airfoil module:
@@ -299,12 +299,12 @@ async def airfoil_view_flow_field(
         zoom_in_scale:
             how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more.
             Set a larger zoom_in_scale if users need to zoom out more.
-        variable:
+        flow_field:
             which flow field variable to visualize. Options are "U": velocity, "T": temperature,
             "p": pressure, "nut": turbulence viscosity (turbulence variable).
-        frame:
-            which frame to view. The frame is the time-step for cfd simulation or
-            optimization iteration for optimization. frame=-1 means all frames
+        time_step:
+            which time step to view. The time_step is the time-step for cfd simulation or
+            optimization iteration for optimization. time_step=-1 means all time steps
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
@@ -313,7 +313,7 @@ async def airfoil_view_flow_field(
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"pvpython script_plot_flow_field.py -x_location={x_location} -y_location={y_location} "
-        f"-zoom_in_scale={zoom_in_scale} -variable={variable} -frame={frame}"
+        f"-zoom_in_scale={zoom_in_scale} -flow_field={flow_field} -time_step={time_step}"
     )
 
     try:
@@ -460,7 +460,7 @@ async def view_cfd_convergence(
 
 
 @mcp.tool()
-async def airfoil_view_pressure_profile(mach_number: float = 0.1, frame: int = -1):
+async def airfoil_view_pressure_profile(mach_number: float = 0.1, time_step: int = -1):
     """
     Airfoil module:
         Plot the pressure profile (distribution) on the airfoil surface
@@ -469,9 +469,9 @@ async def airfoil_view_pressure_profile(mach_number: float = 0.1, frame: int = -
         mach_number:
             The Mach number (Ma). We should use the same mach number set in the
             airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
-        frame:
-            which frame to view. The frame is the time-step for cfd simulation or
-            optimization iteration for optimization. frame=-1 means all frames
+        time_step:
+            which time step to view. The time_step is the time-step for cfd simulation or
+            optimization iteration for optimization. time_step=-1 means all time steps
     Outputs:
         Message indicating the status with HTML link. Must show the link in bold to users.
     """
@@ -479,7 +479,7 @@ async def airfoil_view_pressure_profile(mach_number: float = 0.1, frame: int = -
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
-        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -frame={frame}"
+        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -time_step={time_step}"
     )
 
     try:
@@ -811,7 +811,7 @@ async def wing_run_cfd_simulation(
 @mcp.tool()
 async def wing_view_pressure_profile(
     mach_number: float = 0.1,
-    frame: int = -1,
+    time_step: int = -1,
     span: float = 3.0,
     spanwise_chords: List[float] = [1.0, 1.0, 1.0],
 ):
@@ -823,9 +823,9 @@ async def wing_view_pressure_profile(
         mach_number:
             The Mach number (Ma). We should use the same mach number set in the
             airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
-        frame:
-            which frame to view. The frame is the time-step for cfd simulation or
-            optimization iteration for optimization. Default: -1 (all frames)
+        time_step:
+            which time step to view. The time_step is the time-step for cfd simulation or
+            optimization iteration for optimization. Default: -1 (all time steps)
         span:
             The span for the wing. NOTE: this value must be consistent with the spanwise_z args
             from the wing_generate_geometry function! span = spanwise_z[-1] - spanwise_z[0]
@@ -842,7 +842,7 @@ async def wing_view_pressure_profile(
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {wing_path} && "
-        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -frame={frame} -span={span} "
+        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -time_step={time_step} -span={span} "
         f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
     )
 
@@ -869,7 +869,7 @@ async def wing_view_pressure_profile(
 
 
 @mcp.tool()
-async def wing_view_flow_field(mean_chord: float = 1.0, span: float = 3.0, variable: str = "p"):
+async def wing_view_flow_field(mean_chord: float = 1.0, span: float = 3.0, flow_field: str = "p"):
     """
     Wing module:
         Allow users to view the details of a selected flow field variable.
@@ -882,7 +882,7 @@ async def wing_view_flow_field(mean_chord: float = 1.0, span: float = 3.0, varia
         span:
             The span for the wing. NOTE: this value must be consistent with the spanwise_z args
             from the wing_generate_geometry function! span = spanwise_z[-1] - spanwise_z[0]
-        variable:
+        flow_field:
             which flow field variable to visualize. Options are "U": velocity, "T": temperature,
             "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
 
@@ -893,7 +893,7 @@ async def wing_view_flow_field(mean_chord: float = 1.0, span: float = 3.0, varia
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {wing_path} && "
-        f"pvpython script_plot_flow_field.py -mean_chord={mean_chord} -span={span} -variable={variable}"
+        f"pvpython script_plot_flow_field.py -mean_chord={mean_chord} -span={span} -flow_field={flow_field}"
     )
 
     try:

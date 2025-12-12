@@ -21,8 +21,8 @@ parser.add_argument(
     default=0.0,
 )
 parser.add_argument("-zoom_in_scale", help="zoom in level", type=float, default=0.5)
-parser.add_argument("-variable", help="flow field variable to plot", type=str, default="p")
-parser.add_argument("-frame", help="which frame to visualize", type=int, default=-1)
+parser.add_argument("-flow_field", help="flow field variable to plot", type=str, default="p")
+parser.add_argument("-time_step", help="which time step to visualize", type=int, default=-1)
 args = parser.parse_args()
 
 # create a new 'OpenFOAMReader'
@@ -38,11 +38,11 @@ animationScene1 = GetAnimationScene()
 # update animation scene based on data timesteps
 animationScene1.UpdateAnimationUsingDataTimeSteps()
 
-# go to the specific frame
-if args.frame == -1:
+# go to the specific time step
+if args.time_step == -1:
     animationScene1.GoToLast()
 else:
-    animationScene1.AnimationTime = args.frame * 0.0001
+    animationScene1.AnimationTime = args.time_step * 0.0001
 
 # get active view
 renderView1 = GetActiveViewOrCreate("RenderView")
@@ -65,13 +65,13 @@ renderView1.CameraParallelScale = args.zoom_in_scale
 renderView1.Background = [1.0, 1.0, 1.0]
 
 # set scalar coloring
-ColorBy(paraviewfoamDisplay, ("POINTS", args.variable))
+ColorBy(paraviewfoamDisplay, ("POINTS", args.flow_field))
 
 # show color bar/color legend
 paraviewfoamDisplay.SetScalarBarVisibility(renderView1, True)
 
 # get color transfer function/color map for 'p'
-pLUT = GetColorTransferFunction(args.variable)
+pLUT = GetColorTransferFunction(args.flow_field)
 
 # get color legend/bar for pLUT in view renderView1
 pLUTColorBar = GetScalarBar(pLUT, renderView1)
@@ -89,10 +89,10 @@ pLUTColorBar.ScalarBarThickness = 8
 pLUTColorBar.TitleColor = [0, 0, 0]
 pLUTColorBar.LabelColor = [0, 0, 0]
 
-text1 = Text(registrationName=f"Flow Field: {args.variable}")
+text1 = Text(registrationName=f"Flow Field: {args.flow_field}")
 
-# go to the specific frame
-if args.frame == -1:
+# go to the specific time step
+if args.time_step == -1:
     # Get all available time steps
     animationScene1 = GetAnimationScene()
     time_steps = animationScene1.TimeKeeper.TimestepValues
@@ -107,7 +107,7 @@ if args.frame == -1:
         else:
             iterI = "Final"
 
-        text1.Text = f"Flow Field: {args.variable}. Iteration: {iterI}"
+        text1.Text = f"Flow Field: {args.flow_field}. Iteration: {iterI}"
         text1Display = Show(text1, renderView1, "TextSourceRepresentation")
         renderView1.Update()
         text1Display.FontSize = 15
@@ -124,7 +124,7 @@ if args.frame == -1:
         )
 
 else:
-    time_value = args.frame * 0.0001
+    time_value = args.time_step * 0.0001
     if time_value < 1.0:
         iterI = "%04d" % int(time_value * 10000)
     else:
@@ -132,7 +132,7 @@ else:
     animationScene1.AnimationTime = time_value
     UpdatePipeline()
 
-    text1.Text = f"Flow Field: {args.variable}. Iteration: {iterI}"
+    text1.Text = f"Flow Field: {args.flow_field}. Iteration: {iterI}"
     text1Display = Show(text1, renderView1, "TextSourceRepresentation")
     renderView1.Update()
     text1Display.FontSize = 15

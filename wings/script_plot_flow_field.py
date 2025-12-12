@@ -20,7 +20,7 @@ parser.add_argument(
     type=float,
     default=3.0,
 )
-parser.add_argument("-variable", help="flow field variable to plot", type=str, default="p")
+parser.add_argument("-flow_field", help="flow field variable to plot", type=str, default="p")
 args = parser.parse_args()
 
 span = args.span
@@ -57,13 +57,13 @@ paraviewfoam.MeshRegions = ["symmetry", "wing"]
 renderView1.Update()
 
 # set scalar coloring
-ColorBy(paraviewfoamDisplay, ("POINTS", args.variable))
+ColorBy(paraviewfoamDisplay, ("POINTS", args.flow_field))
 
 # show color bar/color legend
 paraviewfoamDisplay.SetScalarBarVisibility(renderView1, True)
 
 # get color transfer function/color map for 'p'
-pLUT = GetColorTransferFunction(args.variable)
+pLUT = GetColorTransferFunction(args.flow_field)
 
 # get color legend/bar for pLUT in view renderView1
 pLUTColorBar = GetScalarBar(pLUT, renderView1)
@@ -81,8 +81,8 @@ pLUTColorBar.ScalarBarThickness = 8
 pLUTColorBar.TitleColor = [0, 0, 0]
 pLUTColorBar.LabelColor = [0, 0, 0]
 
-text1 = Text(registrationName=f"Flow Field: {args.variable}")
-text1.Text = f"Flow Field: {args.variable}"
+text1 = Text(registrationName=f"Flow Field: {args.flow_field}")
+text1.Text = f"Flow Field: {args.flow_field}"
 text1Display = Show(text1, renderView1, "TextSourceRepresentation")
 renderView1.Update()
 text1Display.FontSize = 15
@@ -99,7 +99,7 @@ renderView1.CameraViewUp = [1.0, 1.0, -1.0]
 
 # save screenshot
 SaveScreenshot(
-    f"plots/wing_flow_field_{args.variable}_3d.png",
+    f"plots/wing_flow_field_{args.flow_field}_3d.png",
     renderView1,
     ImageResolution=[1923, 1158],
 )
