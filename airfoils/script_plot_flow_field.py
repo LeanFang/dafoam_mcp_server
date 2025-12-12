@@ -110,8 +110,8 @@ if args.frame == -1:
         text1.Text = f"Flow Field: {args.variable}. Iteration: {iterI}"
         text1Display = Show(text1, renderView1, "TextSourceRepresentation")
         renderView1.Update()
-        text1Display.FontSize = 35
-        text1Display.WindowLocation = "UpperCenter"
+        text1Display.FontSize = 15
+        text1Display.WindowLocation = "Upper Center"
         text1Display.Bold = 1
         text1Display.FontFamily = "Arial"
         text1Display.Color = [0.0, 0.0, 0.0]
@@ -135,8 +135,8 @@ else:
     text1.Text = f"Flow Field: {args.variable}. Iteration: {iterI}"
     text1Display = Show(text1, renderView1, "TextSourceRepresentation")
     renderView1.Update()
-    text1Display.FontSize = 35
-    text1Display.WindowLocation = "UpperCenter"
+    text1Display.FontSize = 15
+    text1Display.WindowLocation = "Upper Center"
     text1Display.Bold = 1
     text1Display.FontFamily = "Arial"
     text1Display.Color = [0.0, 0.0, 0.0]

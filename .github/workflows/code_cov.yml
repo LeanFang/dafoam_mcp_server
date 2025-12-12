@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Pull base Docker image
-        run: docker pull dafoam/opt-packages:mcp
+        run: docker pull dafoam/opt-packages:latest
 
       - name: Build Docker image
         run: docker build -t dafoam_mcp_server .

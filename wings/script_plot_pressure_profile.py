@@ -61,7 +61,11 @@ paraviewfoamDisplay.Representation = "Surface"
 renderView1.CameraParallelProjection = 1
 
 # Properties modified on paraviewfoam
-paraviewfoam.MeshRegions = ["wing"]
+# In ParaView 5.13, the mesh region is 'patch/wing' not 'wing'
+paraviewfoam.MeshRegions = ["patch/wing"]
+
+# Enable the pressure array for ParaView 5.13
+paraviewfoam.CellArrays = ['p']
 
 # go to the specific frame
 if args.frame == -1:
@@ -94,15 +98,10 @@ if args.frame == -1:
             # Fetch the data to the client
             multi_block_data = servermanager.Fetch(plotOnSortedLines1)
 
-            # Navigate through the nested structure
-            # Level 0 -> Level 1 (Patches)
+            # Navigate through the nested structure (ParaView 5.13)
             patches = multi_block_data.GetBlock(0)
-
-            # Level 1 -> Level 2 (wing)
             wing = patches.GetBlock(0)
-
-            # Level 2 -> Level 3 (vtkPolyData - the actual data)
-            data = wing.GetBlock(0)
+            data = wing
 
             # Now you can get the point data
             point_data = data.GetPointData()
@@ -201,7 +200,7 @@ else:
         multi_block_data = servermanager.Fetch(plotOnSortedLines1)
         patches = multi_block_data.GetBlock(0)
         wing = patches.GetBlock(0)
-        data = wing.GetBlock(0)
+        data = wing
         point_data = data.GetPointData()
         n_points = data.GetNumberOfPoints()
         points = np.array([data.GetPoint(i) for i in range(n_points)])
