@@ -3,7 +3,7 @@
 echo "Cleaning..."
 rm -rf 0
 rm -rf postProcessing
-rm -rf constant/polyMesh/ constant/triSurface/* dynamicCode VTK
+rm -rf constant/polyMesh/ constant/triSurface/* constant/extendedFeatureEdgeMesh dynamicCode VTK
 rm -rf *.bin *.info *.dat *.xyz *.stl *.jpeg *.png reports *.txt *.hst *.igs *.msh
 rm -rf processor* 0.00* FFD/*
 rm -rf .dafoam_run_finished

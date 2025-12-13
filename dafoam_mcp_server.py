@@ -584,7 +584,11 @@ async def wing_generate_geometry(
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
         f"-spanwise_twists {' '.join(map(str, spanwise_twists))} && "
         "pvpython script_iges2stl.py && "
-        "mv *.stl constant/triSurface/ && "
+        "mv wing0.stl constant/triSurface/wing_upper.stl && "
+        "mv wing1.stl constant/triSurface/wing_lower.stl && "
+        "mv wing2.stl constant/triSurface/wing_te.stl && "
+        "cat wing3.stl wing4.stl > constant/triSurface/wing_tip.stl && "
+        "rm -rf *.stl && "
         f"pvpython script_plot_geometry.py "
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
         f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
@@ -627,8 +631,6 @@ async def wing_generate_mesh(
     n_boundary_layers: int = 10,
     mean_chord: float = 1.0,
     wing_span: float = 3.0,
-    leading_edge_root: List[float] = [0.0, 0.0, 0.0],
-    leading_edge_tip: List[float] = [0.0, 0.0, 3.0],
 ):
     """
     Wing module:
@@ -648,16 +650,6 @@ async def wing_generate_mesh(
         wing_span:
             The span for the wing. NOTE: this value must be consistent with the spanwise_z args
             from the wing_generate_geometry function! wing_span = spanwise_z[-1] - spanwise_z[0]
-        leading_edge_root:
-            The coordinates for the leading edge at the wing root. It will be calculated based on spanwise_x,
-            spanwise_y, and spanwise_z from the wing_generate_geometry function. Here the size of spanwise_x
-            is the number of spanwise sections, if there are more than two sections prescribed, we will use
-            the first one (root section) and the last one (tip section).
-        leading_edge_tip:
-            The coordinates for the leading edge at the wing tip. It will be calculated based on spanwise_x,
-            spanwise_y, and spanwise_z from the wing_generate_geometry function. Here the size of spanwise_x
-            is the number of spanwise sections, if there are more than two sections prescribed, we will use
-            the first one (root section) and the last one (tip section).
 
     Returns:
         Status message and list of generated files. Must show the link in bold to users.
@@ -665,22 +657,30 @@ async def wing_generate_mesh(
     """
 
     # Build command line arguments
-    L = mean_chord * 20.0
-    le_root = leading_edge_root
-    le_tip = leading_edge_tip
+    Lx = mean_chord * 20.0
+    LxNeg = -Lx
+    Nx = int(Lx / max_cell_size)
+    Nz = int(Nx / 2)
+    surfaceLevel = mesh_refinement_level
+    lineLevel = surfaceLevel + 2
+    prismLayer = n_boundary_layers
     bash_command = (
         f"cd {wing_path} && "
-        f"sed -i 's/^maxCellSize.*/maxCellSize {max_cell_size};/' system/meshDict && "
-        f"sed -i 's/^refinementLevel.*/refinementLevel {mesh_refinement_level};/' system/meshDict && "
-        f"sed -i 's/^nBoundaryLayers.*/nBoundaryLayers {n_boundary_layers};/' system/meshDict && "
-        f"sed -i 's/^le_p0.*/le_p0 ({le_root[0]} {le_root[1]} {le_root[2]});/' system/meshDict && "
-        f"sed -i 's/^le_p1.*/le_p1 ({le_tip[0]} {le_tip[1]} {le_tip[2]});/' system/meshDict && "
-        f"surfaceGenerateBoundingBox wing.stl domain.stl {L} {L} {L} {L} 0 {L} > log_mesh.txt && "
-        f"cartesianMesh >> log_mesh.txt && "
-        f"renumberMesh -overwrite >> log_mesh.txt && "
-        f"checkMesh >> log_mesh.txt && "
-        f'foamToVTK -patches "(wing sym)" -one-boundary && '
-        f"cp -r 0_orig 0 && "
+        f"sed -i 's/^Lx .*/Lx {Lx};/' system/blockMeshDict && "
+        f"sed -i 's/^LxNeg.*/LxNeg {LxNeg};/' system/blockMeshDict && "
+        f"sed -i 's/^Nx.*/Nx {Nx};/' system/blockMeshDict && "
+        f"sed -i 's/^Nz.*/Nz {Nz};/' system/blockMeshDict && "
+        f"sed -i 's/^surfaceLevel.*/surfaceLevel {surfaceLevel};/' system/snappyHexMeshDict && "
+        f"sed -i 's/^lineLevel.*/lineLevel {lineLevel};/' system/snappyHexMeshDict && "
+        f"sed -i 's/^prismLayer.*/prismLayer {prismLayer};/' system/snappyHexMeshDict && "
+        "blockMesh >> log_mesh.txt && "
+        "surfaceFeatureExtract >> log_mesh.txt && "
+        "snappyHexMesh -overwrite >> log_mesh.txt && "
+        "createPatch -overwrite >> log_mesh.txt && "
+        "renumberMesh -overwrite >> log_mesh.txt && "
+        "checkMesh >> log_mesh.txt && "
+        'foamToVTK -patches "(wing sym)" -one-boundary && '
+        "cp -r 0_orig 0 && "
         f"pvpython script_plot_mesh.py "
         f"-mean_chord={mean_chord} "
         f"-wing_span={wing_span} "
@@ -829,7 +829,8 @@ async def wing_view_pressure_profile(
 
     bash_command = (
         f"cd {wing_path} && "
-        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -time_step={time_step} -wing_span={wing_span} "
+        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} "
+        f"-time_step={time_step} -wing_span={wing_span} "
         f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
     )
 
