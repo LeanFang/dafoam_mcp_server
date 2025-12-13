@@ -583,6 +583,8 @@ async def wing_generate_geometry(
         f"-spanwise_y {' '.join(map(str, spanwise_y))} "
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
         f"-spanwise_twists {' '.join(map(str, spanwise_twists))} && "
+        "pvpython script_iges2stl.py && "
+        "mv *.stl constant/triSurface/ && "
         f"pvpython script_plot_geometry.py "
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
         f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "

@@ -31,25 +31,28 @@ mean_chord = sum(args.spanwise_chords) / len(args.spanwise_chords)
 mean_span = span / 2.0
 
 # create a new 'STL Reader'
-wingstl = STLReader(registrationName="wing.stl", FileNames=["wing.stl"])
+wing_mmiges = IGESReader(registrationName="wing_mm.iges", FileNames=["wing_mm.iges"])
+wing_mmiges.LinearDeflection = 0.05
+wing_mmiges.AngularDeflection = 0.2
+wing_mmiges.RelativeDeflection = 0
+wing_mmiges.ReadWire = 0
 
 # get active view
-renderView1 = GetActiveViewOrCreate("RenderView")
+renderView1 = GetActiveViewOrCreate('RenderView')
+
+# Apply scaling transform
+transform1 = Transform(registrationName="Transform1", Input=wing_mmiges)
+transform1.Transform = "Transform"
+
+# scale the iges from mm to m
+scale_factor = 0.001
+transform1.Transform.Scale = [scale_factor, scale_factor, scale_factor]
 
 # show data in view
-wingstlDisplay = Show(wingstl, renderView1, "GeometryRepresentation")
+wing_mmigesDisplay = Show(transform1, renderView1, "GeometryRepresentation")
 
 # trace defaults for the display properties.
-wingstlDisplay.Representation = "Surface"
-
-# turn off scalar coloring
-ColorBy(wingstlDisplay, None)
-
-# get color transfer function/color map for 'STLSolidLabeling'
-sTLSolidLabelingLUT = GetColorTransferFunction("STLSolidLabeling")
-
-# Hide the scalar bar for this color map if no visible data is colored by it.
-HideScalarBarIfNotNeeded(sTLSolidLabelingLUT, renderView1)
+wing_mmigesDisplay.Representation = "Surface"
 
 # Properties modified on renderView1
 renderView1.CameraParallelProjection = 1
