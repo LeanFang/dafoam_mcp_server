@@ -92,10 +92,8 @@ def test_airfoil_generate_mesh():
         # Check for expected output files
         expected_files = [
             "../airfoils/log_mesh.txt",
-            "../airfoils/plots/airfoil_mesh_overview.png",
-            "../airfoils/plots/airfoil_mesh_le.png",
-            "../airfoils/plots/airfoil_mesh_te.png",
             "../airfoils/plots/airfoil_mesh_all_views.html",
+            "../airfoils/plots/airfoil_mesh_all_views.png",
         ]
 
         if check_files_exist(expected_files):
@@ -118,8 +116,13 @@ def test_airfoil_view_mesh():
         result = asyncio.run(airfoil_view_mesh())
         print(f"Output: {result}")
 
-        # Check for expected output file
-        if check_files_exist(["../airfoils/plots/airfoil_mesh.html"]):
+        # Check for expected output files
+        if check_files_exist(
+            [
+                "../airfoils/plots/airfoil_mesh.html",
+                "../airfoils/plots/airfoil_mesh.png",
+            ]
+        ):
             print("[PASS] airfoil_view_mesh PASSED\n")
             return True
         else:
@@ -169,8 +172,11 @@ def test_airfoil_run_cfd_and_views():
         # Check all visualization files
         visualization_files = [
             "../airfoils/plots/airfoil_convergence.html",
+            "../airfoils/plots/airfoil_convergence.png",
             "../airfoils/plots/airfoil_pressure_profile.html",
+            "../airfoils/plots/airfoil_pressure_profile.png",
             "../airfoils/plots/airfoil_flow_field.html",
+            "../airfoils/plots/airfoil_flow_field.png",
         ]
 
         if check_files_exist(visualization_files):
@@ -220,12 +226,8 @@ def test_airfoil_run_optimization_and_views():
 
         if check_files_exist(
             [
-                "../airfoils/plots/airfoil_opt_hst_cd.png",
-                "../airfoils/plots/airfoil_opt_hst_cl.png",
-                "../airfoils/plots/airfoil_opt_hst_aoa.png",
-                "../airfoils/plots/airfoil_opt_hst_shape.png",
-                "../airfoils/plots/airfoil_opt_hst_optimality.png",
-                "../airfoils/plots/airfoil_opt_hst_feasibility.png",
+                "../airfoils/plots/airfoil_optimization_history.html",
+                "../airfoils/plots/airfoil_optimization_history.png",
             ]
         ):
             print("[PASS] airfoil_run_optimization_and_views PASSED\n")
@@ -254,11 +256,8 @@ def test_wing_generate_geometry():
             "../wings/constant/triSurface/wing_lower.stl",
             "../wings/constant/triSurface/wing_te.stl",
             "../wings/constant/triSurface/wing_tip.stl",
-            "../wings/plots/wing_geometry_view_3d.png",
-            "../wings/plots/wing_geometry_view_y.png",
-            "../wings/plots/wing_geometry_view_x.png",
-            "../wings/plots/wing_geometry_view_z.png",
             "../wings/plots/wing_geometry_all_views.html",
+            "../wings/plots/wing_geometry_all_views.png",
         ]
 
         if check_files_exist(expected_files):
@@ -284,11 +283,8 @@ def test_wing_generate_mesh():
         # Check for expected output files
         expected_files = [
             "../wings/log_mesh.txt",
-            "../wings/plots/wing_mesh_view_3d.png",
-            "../wings/plots/wing_mesh_view_y.png",
-            "../wings/plots/wing_mesh_view_x.png",
-            "../wings/plots/wing_mesh_view_z.png",
             "../wings/plots/wing_mesh_all_views.html",
+            "../wings/plots/wing_mesh_all_views.png",
         ]
 
         if check_files_exist(expected_files):
@@ -346,12 +342,12 @@ def test_wing_run_cfd_and_views():
 
         # Check all visualization files
         visualization_files = [
-            "../wings/plots/wing_function_cd.png",
-            "../wings/plots/wing_function_cl.png",
-            "../wings/plots/wing_function_cm.png",
-            "../wings/plots/wing_residual_cfd.png",
+            "../wings/plots/wing_convergence.html",
+            "../wings/plots/wing_convergence.png",
             "../wings/plots/wing_pressure_profile.html",
+            "../wings/plots/wing_pressure_profile.png",
             "../wings/plots/wing_flow_field.html",
+            "../wings/plots/wing_flow_field.png",
         ]
 
         if check_files_exist(visualization_files):

@@ -11,6 +11,7 @@ import time
 import urllib.request
 import os
 import glob
+from PIL import Image
 
 # =============================================================================
 # USER CONFIGURATION
@@ -83,7 +84,7 @@ async def airfoil_generate_mesh(
         mach_number:
             the reference Mach number to estimate the near wall mesh size.
     Outputs:
-        Message indicating the status with HTML link. Must show the link in bold to users.
+        Message indicating the status. Must show the HTML link and the path to the combine PNG in bold to users.
         Mesh statistics. Must show them to users. Keep only one digit for non-orthogonality and skewness
     """
 
@@ -140,16 +141,14 @@ async def airfoil_generate_mesh(
         mesh_stats = parse_mesh_statistics(log_file_path)
 
         # Create HTML wrapper using multi-image function
-        html_filename = "airfoil_mesh_all_views.html"
-        create_image_html(
-            airfoil_path,
-            [
-                "plots/airfoil_mesh_overview.png",
-                "plots/airfoil_mesh_le.png",
-                "plots/airfoil_mesh_te.png",
-            ],
-            html_filename,
-        )
+        output_filename = "airfoil_mesh_all_views"
+        image_list = [
+            "plots/airfoil_mesh_overview.png",
+            "plots/airfoil_mesh_le.png",
+            "plots/airfoil_mesh_te.png",
+        ]
+        create_image_html(airfoil_path, image_list, output_filename + ".html")
+        combine_pngs(airfoil_path, image_list, output_filename + ".png")
 
         return (
             download_message,
@@ -158,7 +157,8 @@ async def airfoil_generate_mesh(
             f"  - Number of mesh cells: {mesh_stats['cells']}\n"
             f"  - Mesh max non-orthogonality: {mesh_stats['max_non_orthogonality']:.2f}°\n"
             f"  - Mesh max skewness: {mesh_stats['max_skewness']:.2f}\n\n"
-            f"View the mesh: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}",
+            f"View the mesh: http://localhost:{FILE_HTTP_PORT}/airfoil/{output_filename}.html\n"
+            f"Combined PNG path: {airfoil_path}/plots/{output_filename}.png",
         )
 
     except subprocess.CalledProcessError as e:
@@ -323,7 +323,7 @@ async def airfoil_view_flow_field(
             which time step to view. The time_step is the time-step for cfd simulation or
             optimization iteration for optimization. time_step=-1 means all time steps
     Outputs:
-        Message indicating the status with HTML link. Must show the link in bold to users.
+        Message indicating the status. Must show the HTML link and the path to the combine PNG in bold to users.
     """
 
     bash_command = (
@@ -340,14 +340,16 @@ async def airfoil_view_flow_field(
             lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
-        # Create a single HTML with both images
-        html_filename = "airfoil_flow_field.html"
+        # Create HTML wrapper using multi-image function
+        output_filename = "airfoil_flow_field"
         image_names = glob.glob(f"{airfoil_path}/plots/airfoil_flow_field*.png")
-        create_image_html(airfoil_path, sorted(image_names, reverse=True), html_filename)
+        create_image_html(airfoil_path, sorted(image_names, reverse=True), output_filename + ".html")
+        combine_pngs(airfoil_path, sorted(image_names, reverse=True), output_filename + ".png")
 
         return (
             "Flow field plots successfully generated!\n\n"
-            f"View convergence: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/airfoil/{output_filename}.html\n"
+            f"Combined PNG path: {airfoil_path}/plots/{output_filename}.png"
         )
 
     except subprocess.CalledProcessError as e:
@@ -363,7 +365,7 @@ async def airfoil_view_optimization_history():
     Inputs:
         None
     Outputs:
-        Message indicating the status with HTML links. Must show the link in bold to users.
+        Message indicating the status. Must show the HTML link and the path to the combine PNG in bold to users.
     """
 
     bash_command = f"cd {airfoil_path} && " f"python script_plot_optimization_history.py"
@@ -376,8 +378,8 @@ async def airfoil_view_optimization_history():
             lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
-        # Create a single HTML with both images
-        html_filename = "airfoil_optimization_history.html"
+        # Create HTML wrapper using multi-image function
+        output_filename = "airfoil_optimization_history"
         image_files = [
             "plots/airfoil_opt_hst_cd.png",
             "plots/airfoil_opt_hst_cl.png",
@@ -386,11 +388,13 @@ async def airfoil_view_optimization_history():
             "plots/airfoil_opt_hst_optimality.png",
             "plots/airfoil_opt_hst_feasibility.png",
         ]
-        create_image_html(airfoil_path, image_files, html_filename)
+        create_image_html(airfoil_path, image_files, output_filename + ".html")
+        combine_pngs(airfoil_path, image_files, output_filename + ".png")
 
         return (
             "Optimization history plots successfully generated!\n\n"
-            f"View convergence: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/airfoil/{output_filename}.html\n"
+            f"Combined PNG path: {airfoil_path}/plots/{output_filename}.png"
         )
 
     except subprocess.CalledProcessError as e:
@@ -425,7 +429,7 @@ async def view_cfd_convergence(
         end_time_adjoint:
             the adjoint end time index to plot. end_time_adjoint=-1 means the last time step
     Outputs:
-        Message indicating the status with HTML links. Must show the link in bold to users.
+        Message indicating the status. Must show the HTML link and the path to the combine PNG in bold to users.
     """
 
     if module == "airfoil":
@@ -438,7 +442,8 @@ async def view_cfd_convergence(
         f"pvpython --no-mpi script_plot_residual.py "
         f"-log_file={log_file} -start_time_cfd={start_time_cfd} -end_time_cfd={end_time_cfd} "
         f"-start_time_adjoint={start_time_adjoint} -end_time_adjoint={end_time_adjoint} && "
-        f"pvpython --no-mpi script_plot_function.py -log_file={log_file} -start_time={start_time_cfd} -end_time={end_time_cfd}"
+        f"pvpython --no-mpi script_plot_function.py -log_file={log_file} "
+        f"-start_time={start_time_cfd} -end_time={end_time_cfd}"
     )
 
     try:
@@ -449,8 +454,8 @@ async def view_cfd_convergence(
             lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
-        # Create a single HTML with both images
-        html_filename = f"{module}_convergence.html"
+        # Create HTML wrapper using multi-image function
+        output_filename = f"{module}_convergence"
         image_files = [
             f"plots/{module}_function_cd.png",
             f"plots/{module}_function_cl.png",
@@ -459,11 +464,13 @@ async def view_cfd_convergence(
         ]
         if log_file == "log_optimization.txt":
             image_files.append(f"plots/{module}_residual_adjoint.png")
-        create_image_html(case_path, image_files, html_filename)
+        create_image_html(case_path, image_files, output_filename + ".html")
+        combine_pngs(case_path, image_files, output_filename + ".png")
 
         return (
             "Residual and function plots successfully generated!\n\n"
-            f"View convergence: http://localhost:{FILE_HTTP_PORT}/{module}/{html_filename}"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/{module}/{output_filename}.html\n"
+            f"Combined PNG path: {case_path}/plots/{output_filename}.png"
         )
 
     except subprocess.CalledProcessError as e:
@@ -484,7 +491,7 @@ async def airfoil_view_pressure_profile(mach_number: float = 0.1, time_step: int
             which time step to view. The time_step is the time-step for cfd simulation or
             optimization iteration for optimization. time_step=-1 means all time steps
     Outputs:
-        Message indicating the status with HTML link. Must show the link in bold to users.
+        Message indicating the status. Must show the HTML link and the path to the combine PNG in bold to users.
     """
 
     bash_command = (
@@ -501,13 +508,15 @@ async def airfoil_view_pressure_profile(mach_number: float = 0.1, time_step: int
         )
 
         # Create HTML wrapper using multi-image function
-        html_filename = "airfoil_pressure_profile.html"
+        output_filename = "airfoil_pressure_profile"
         image_names = glob.glob(f"{airfoil_path}/plots/airfoil_pressure_profile*.png")
-        create_image_html(airfoil_path, sorted(image_names, reverse=True), html_filename)
+        create_image_html(airfoil_path, sorted(image_names, reverse=True), output_filename + ".html")
+        combine_pngs(airfoil_path, sorted(image_names, reverse=True), output_filename + ".png")
 
         return (
             "Pressure profile successfully generated!\n\n"
-            f"View the result: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}"
+            f"View the result: http://localhost:{FILE_HTTP_PORT}/airfoil/{output_filename}.html\n"
+            f"Combined PNG path: {airfoil_path}/plots/{output_filename}.png"
         )
 
     except subprocess.CalledProcessError as e:
@@ -531,12 +540,13 @@ async def airfoil_view_mesh(x_location: float = 0.5, y_location: float = 0.0, zo
             how much to zoom in to visualize the mesh. Set a smaller zoom_in_scale if users need zoom in more.
             Set a larger zoom_in_scale if users need to zoom out more.
     Outputs:
-        Message indicating the status with HTML link. Must show the link in bold to users.
+        Message indicating the status. Must show the HTML link and the path to the PNG in bold to users.
     """
 
     bash_command = (
         f"cd {airfoil_path} && "
-        f"pvpython --no-mpi script_plot_mesh.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale}"
+        f"pvpython --no-mpi script_plot_mesh.py -x_location={x_location} -y_location={y_location} "
+        f"-zoom_in_scale={zoom_in_scale}"
     )
 
     try:
@@ -548,12 +558,13 @@ async def airfoil_view_mesh(x_location: float = 0.5, y_location: float = 0.0, zo
         )
 
         # Create HTML wrapper using multi-image function
-        html_filename = "airfoil_mesh.html"
-        create_image_html(airfoil_path, ["plots/airfoil_mesh.png"], html_filename)
+        output_filename = "airfoil_mesh"
+        create_image_html(airfoil_path, ["plots/airfoil_mesh.png"], output_filename + ".html")
 
         return (
             "Mesh visualization successfully generated!\n\n"
-            f"View the result: http://localhost:{FILE_HTTP_PORT}/airfoil/{html_filename}"
+            f"View the result: http://localhost:{FILE_HTTP_PORT}/airfoil/{output_filename}.html\n"
+            f"PNG path: {airfoil_path}/plots/{output_filename}.png"
         )
 
     except subprocess.CalledProcessError as e:
@@ -590,7 +601,7 @@ async def wing_generate_geometry(
             Twist angles for each spanwise section
 
     Returns:
-        Status message and list of generated files. Must show the link in bold to users.
+        Status message and list of generated files. Must show the HTML link and path to combine PNG in bold to users.
     """
 
     # Build command line arguments
@@ -624,21 +635,20 @@ async def wing_generate_geometry(
         )
 
         # Create HTML wrapper using multi-image function
-        html_filename = "wing_geometry_all_views.html"
-        create_image_html(
-            wing_path,
-            [
-                "plots/wing_geometry_view_3d.png",
-                "plots/wing_geometry_view_y.png",
-                "plots/wing_geometry_view_x.png",
-                "plots/wing_geometry_view_z.png",
-            ],
-            html_filename,
-        )
+        output_filename = "wing_geometry_all_views"
+        image_files = [
+            "plots/wing_geometry_view_3d.png",
+            "plots/wing_geometry_view_y.png",
+            "plots/wing_geometry_view_x.png",
+            "plots/wing_geometry_view_z.png",
+        ]
+        create_image_html(wing_path, image_files, output_filename + ".html")
+        combine_pngs(wing_path, image_files, output_filename + ".png")
 
         return (
             "Wing geometry is successfully generated!\n\n"
-            f"View the geometry at: http://localhost:{FILE_HTTP_PORT}/wing/{html_filename}"
+            f"View the geometry at: http://localhost:{FILE_HTTP_PORT}/wing/{output_filename}.html\n"
+            f"Combined PNG path: {wing_path}/plots/{output_filename}.png"
         )
 
     except subprocess.CalledProcessError as e:
@@ -845,7 +855,7 @@ async def wing_view_pressure_profile(
             use linear  interpolation to get the chord at 10%, 50%, and 90% of the span. We MUST recompute these
             values instead of using the default.
     Outputs:
-        Message indicating the status with HTML link. Must show the link in bold to users.
+        Message indicating the status. Must show the HTML link and the path to the combine PNG in bold to users.
     """
 
     bash_command = (
@@ -864,13 +874,15 @@ async def wing_view_pressure_profile(
         )
 
         # Create HTML wrapper using multi-image function
-        html_filename = "wing_pressure_profile.html"
+        output_filename = "wing_pressure_profile"
         image_names = glob.glob(f"{wing_path}/plots/wing_pressure_profile*.png")
-        create_image_html(wing_path, sorted(image_names, reverse=True), html_filename)
+        create_image_html(wing_path, sorted(image_names, reverse=True), output_filename + ".html")
+        combine_pngs(wing_path, sorted(image_names, reverse=True), output_filename + ".png")
 
         return (
             "Pressure profile successfully generated!\n\n"
-            f"View the result: http://localhost:{FILE_HTTP_PORT}/wing/{html_filename}"
+            f"View the result: http://localhost:{FILE_HTTP_PORT}/wing/{output_filename}.html\n"
+            f"Combined PNG path: {wing_path}/plots/{output_filename}.png"
         )
 
     except subprocess.CalledProcessError as e:
@@ -896,12 +908,13 @@ async def wing_view_flow_field(mean_chord: float = 1.0, wing_span: float = 3.0, 
             "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
 
     Outputs:
-        Message indicating the status with HTML link. Must show the link in bold to users.
+        Message indicating the status. Must show the HTML link and the path to the combine PNG in bold to users.
     """
 
     bash_command = (
         f"cd {wing_path} && "
-        f"pvpython --no-mpi script_plot_flow_field.py -mean_chord={mean_chord} -wing_span={wing_span} -flow_field={flow_field}"
+        f"pvpython --no-mpi script_plot_flow_field.py -mean_chord={mean_chord} -wing_span={wing_span} "
+        f"-flow_field={flow_field}"
     )
 
     try:
@@ -912,14 +925,16 @@ async def wing_view_flow_field(mean_chord: float = 1.0, wing_span: float = 3.0, 
             lambda: subprocess.run(["bash", "-c", bash_command], capture_output=True, text=True, check=True),
         )
 
-        # Create a single HTML with both images
-        html_filename = "wing_flow_field.html"
+        # Create HTML wrapper using multi-image function
+        output_filename = "wing_flow_field"
         image_names = glob.glob(f"{wing_path}/plots/wing_flow_field*.png")
-        create_image_html(wing_path, sorted(image_names, reverse=True), html_filename)
+        create_image_html(wing_path, sorted(image_names, reverse=True), output_filename + ".html")
+        combine_pngs(wing_path, sorted(image_names, reverse=True), output_filename + ".png")
 
         return (
             "Flow field plots successfully generated!\n\n"
-            f"View convergence: http://localhost:{FILE_HTTP_PORT}/wing/{html_filename}"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/wing/{output_filename}.html\n"
+            f"Combined PNG path: {wing_path}/plots/{output_filename}.png"
         )
 
     except subprocess.CalledProcessError as e:
@@ -1045,6 +1060,62 @@ def start_http_server():
         with open(f"{airfoil_path}/plots/http_server_error.txt", "w") as f:
             f.write(f"HTTP Server failed to start: {str(e)}\n")
         server_started = False
+
+
+def combine_pngs(case_path: str, image_files: List[str], output_filename: str, spacing: int = 50) -> str:
+    """
+    Combine multiple PNG images vertically into a single PNG with white space between them.
+
+    Inputs:
+        case_path: Base path where images are located (e.g., airfoil_path or wing_path)
+        image_files: List of image filenames relative to case_path (e.g., ['plots/image1.png', 'plots/image2.png'])
+        output_filename: Name of the combined output PNG file
+        spacing: White space (in pixels) between images. Default: 50
+
+    Returns:
+        Path to the generated combined PNG file, or None if no valid images found
+    """
+
+    # Load all images
+    images = []
+    for image_filename in image_files:
+        image_path = Path(case_path) / image_filename
+        if not image_path.exists():
+            continue
+        try:
+            img = Image.open(image_path)
+            images.append(img.convert("RGB"))  # Convert to RGB to ensure consistent format
+        except Exception as e:
+            print(f"Warning: Could not load image {image_path}: {str(e)}")
+            continue
+
+    if not images:
+        return None
+
+    # Calculate dimensions for the combined image
+    max_width = max(img.width for img in images)
+    total_height = sum(img.height for img in images) + spacing * (len(images) - 1)
+
+    # Create a new white image with the calculated dimensions
+    combined_image = Image.new("RGB", (max_width, total_height), color="white")
+
+    # Paste images vertically with spacing
+    current_y = 0
+    for img in images:
+        # Center the image horizontally if it's narrower than max_width
+        x_offset = (max_width - img.width) // 2
+        combined_image.paste(img, (x_offset, current_y))
+        current_y += img.height + spacing
+
+    # Save the combined image
+    output_path = Path(case_path) / "plots" / output_filename
+    combined_image.save(output_path, "PNG")
+
+    # Close all opened images to free memory
+    for img in images:
+        img.close()
+
+    return str(output_path)
 
 
 def create_image_html(case_path: str, image_files: List, html_filename: str) -> str:
