@@ -808,7 +808,7 @@ async def wing_view_pressure_profile(
     Inputs:
         mach_number:
             The Mach number (Ma). We should use the same mach number set in the
-            airfoil_generate_mesh and airfoil_run_cfd_simulation calls.
+            wing_run_cfd_simulation call.
         time_step:
             which time step to view. The time_step is the time-step for cfd simulation or
             optimization iteration for optimization. Default: -1 (all time steps)
