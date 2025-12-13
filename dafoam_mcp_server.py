@@ -657,7 +657,7 @@ async def wing_generate_mesh(
     """
 
     # Build command line arguments
-    Lx = mean_chord * 20.0
+    Lx = mean_chord * 30.0
     LxNeg = -Lx
     Nx = int(Lx / max_cell_size)
     Nz = int(Nx / 2)

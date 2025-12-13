@@ -14,10 +14,10 @@ FoamFile
     object blockMeshDict;
 }
 
-Lx 20.0;
-LxNeg -20.0;
-Nx 20;
-Nz 10;
+Lx 30.0;
+LxNeg -30.0;
+Nx 30;
+Nz 15;
 
 convertToMeters 1;
 

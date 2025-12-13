@@ -31,8 +31,7 @@ boundaryField
     }
     inout
     {
-        type            outletInlet;
-        outletValue     $internalField;
+        type            fixedValue;
         value           $internalField;
     }
 }
