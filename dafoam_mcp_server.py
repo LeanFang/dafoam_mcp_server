@@ -12,14 +12,27 @@ import urllib.request
 import os
 import glob
 
+# =============================================================================
+# CONFIGURATION - Modify these paths based on your setup
+# =============================================================================
+
+# DOCKER MODE (default; compatible on Windows, MacOS, and Linux)
+# If you use the docker mode, please DO NOT to change the paths below
+airfoil_path = "/home/dafoamuser/mount/airfoils/"
+wing_path = "/home/dafoamuser/mount/wings/"
+
+# NATIVE MODE (work only on Linux; assuming you have compiled DAFoam from source)
+# If you use the native mode, please comment the above Docker mode paths,
+# then uncomment and modify the following paths. Make sure to use the ABSOLUTE paths
+# where you have the dafoam_mcp_server repo downloaded
+# airfoil_path = "/home/yourusername/dafoam_mcp_server/airfoils/"
+# wing_path = "/home/yourusername/dafoam_mcp_server/wings/"
+
 # Suppress all logging to stdout/stderr before MCP starts
 logging.basicConfig(level=logging.CRITICAL)
 
 # Initialize FastMCP server
 mcp = FastMCP("dafoam_mcp_server")
-
-airfoil_path = "/home/dafoamuser/mount/airfoils/"
-wing_path = "/home/dafoamuser/mount/wings/"
 
 
 @mcp.tool()
@@ -551,7 +564,8 @@ async def wing_generate_geometry(
 ):
     """
     Wing module:
-        Generate wing geometry using pyGeo and gmsh. Here we assume x is the flow direction, y is the airfoil
+        Generate wing iges geometry using pyGeo and convert it to stl using ParaView. 
+        Here we assume x is the flow direction, y is the airfoil
         vertical direction, and z is the wing spanwise direction.
 
     Args:

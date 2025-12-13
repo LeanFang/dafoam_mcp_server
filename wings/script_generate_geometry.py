@@ -1,7 +1,6 @@
 from pygeo import pyGeo
 import argparse
 import numpy as np
-import gmsh
 
 
 parser = argparse.ArgumentParser()
