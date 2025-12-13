@@ -207,7 +207,7 @@ def test_airfoil_run_optimization_and_views():
 
         # Wait for completion
         print("  Waiting for optimization to complete...")
-        completed = asyncio.run(wait_for_run_completion(module="airfoil", timeout=1200, check_interval=10))
+        completed = asyncio.run(wait_for_run_completion(module="airfoil", timeout=600, check_interval=10))
 
         if not completed:
             print("[FAIL] Optimization did not complete in time\n")
@@ -325,7 +325,7 @@ def test_wing_run_cfd_and_views():
 
         # Wait for completion
         print("  Waiting for wing CFD simulation to complete...")
-        completed = asyncio.run(wait_for_run_completion(module="wing", timeout=1200, check_interval=10))
+        completed = asyncio.run(wait_for_run_completion(module="wing", timeout=400, check_interval=10))
 
         if not completed:
             print("[FAIL] Wing CFD simulation did not complete in time\n")
