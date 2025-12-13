@@ -124,7 +124,7 @@ async def airfoil_generate_mesh(
         f"dafoam_plot3d2tecplot.py FFD/FFD.xyz FFD/FFD.dat >> log_mesh.txt && "
         f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD/FFD.dat && '
         f"rm volumeMesh.xyz surfMesh.xyz && "
-        f"pvpython script_plot_mesh.py -plot_all_views=1 "
+        f"pvpython --no-mpi script_plot_mesh.py -plot_all_views=1 "
     )
 
     try:
@@ -328,7 +328,7 @@ async def airfoil_view_flow_field(
 
     bash_command = (
         f"cd {airfoil_path} && "
-        f"pvpython script_plot_flow_field.py -x_location={x_location} -y_location={y_location} "
+        f"pvpython --no-mpi script_plot_flow_field.py -x_location={x_location} -y_location={y_location} "
         f"-zoom_in_scale={zoom_in_scale} -flow_field={flow_field} -time_step={time_step}"
     )
 
@@ -435,10 +435,10 @@ async def view_cfd_convergence(
 
     bash_command = (
         f"cd {case_path} && "
-        f"pvpython script_plot_residual.py "
+        f"pvpython --no-mpi script_plot_residual.py "
         f"-log_file={log_file} -start_time_cfd={start_time_cfd} -end_time_cfd={end_time_cfd} "
         f"-start_time_adjoint={start_time_adjoint} -end_time_adjoint={end_time_adjoint} && "
-        f"pvpython script_plot_function.py -log_file={log_file} -start_time={start_time_cfd} -end_time={end_time_cfd}"
+        f"pvpython --no-mpi script_plot_function.py -log_file={log_file} -start_time={start_time_cfd} -end_time={end_time_cfd}"
     )
 
     try:
@@ -489,7 +489,7 @@ async def airfoil_view_pressure_profile(mach_number: float = 0.1, time_step: int
 
     bash_command = (
         f"cd {airfoil_path} && "
-        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -time_step={time_step}"
+        f"pvpython --no-mpi script_plot_pressure_profile.py -mach_number={mach_number} -time_step={time_step}"
     )
 
     try:
@@ -536,7 +536,7 @@ async def airfoil_view_mesh(x_location: float = 0.5, y_location: float = 0.0, zo
 
     bash_command = (
         f"cd {airfoil_path} && "
-        f"pvpython script_plot_mesh.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale}"
+        f"pvpython --no-mpi script_plot_mesh.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale}"
     )
 
     try:
@@ -604,13 +604,13 @@ async def wing_generate_geometry(
         f"-spanwise_y {' '.join(map(str, spanwise_y))} "
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
         f"-spanwise_twists {' '.join(map(str, spanwise_twists))} && "
-        "pvpython script_iges2stl.py && "
+        "pvpython --no-mpi script_iges2stl.py && "
         "mv wing0.stl constant/triSurface/wing_upper.stl && "
         "mv wing1.stl constant/triSurface/wing_lower.stl && "
         "mv wing2.stl constant/triSurface/wing_te.stl && "
         "cat wing3.stl wing4.stl > constant/triSurface/wing_tip.stl && "
         "rm -rf *.stl && "
-        f"pvpython script_plot_geometry.py "
+        f"pvpython --no-mpi script_plot_geometry.py "
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
         f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
     )
@@ -702,7 +702,7 @@ async def wing_generate_mesh(
         "checkMesh >> log_mesh.txt && "
         'foamToVTK -patches "(wing sym)" -one-boundary && '
         "cp -r 0_orig 0 && "
-        f"pvpython script_plot_mesh.py "
+        f"pvpython --no-mpi script_plot_mesh.py "
         f"-mean_chord={mean_chord} "
         f"-wing_span={wing_span} "
     )
@@ -850,7 +850,7 @@ async def wing_view_pressure_profile(
 
     bash_command = (
         f"cd {wing_path} && "
-        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} "
+        f"pvpython --no-mpi script_plot_pressure_profile.py -mach_number={mach_number} "
         f"-time_step={time_step} -wing_span={wing_span} "
         f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
     )
@@ -901,7 +901,7 @@ async def wing_view_flow_field(mean_chord: float = 1.0, wing_span: float = 3.0, 
 
     bash_command = (
         f"cd {wing_path} && "
-        f"pvpython script_plot_flow_field.py -mean_chord={mean_chord} -wing_span={wing_span} -flow_field={flow_field}"
+        f"pvpython --no-mpi script_plot_flow_field.py -mean_chord={mean_chord} -wing_span={wing_span} -flow_field={flow_field}"
     )
 
     try:
