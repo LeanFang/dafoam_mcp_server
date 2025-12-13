@@ -13,26 +13,33 @@ import os
 import glob
 
 # =============================================================================
-# CONFIGURATION - Modify these paths based on your setup
+# USER CONFIGURATION
 # =============================================================================
 
-# DOCKER MODE (default; compatible on Windows, MacOS, and Linux)
-# If you use the docker mode, please DO NOT to change the paths below
-airfoil_path = "/home/dafoamuser/mount/airfoils/"
-wing_path = "/home/dafoamuser/mount/wings/"
+# We support two modes:
+# 1. DOCKER MODE (default; compatible on Windows, MacOS, and Linux)
+# 2. NATIVE MODE (only for Linux; assuming you have compiled DAFoam from source)
+# If you use the docker mode, please DO NOT to change the base_path below.
+# If you use the native mode, please change the base_path to the ABSOLUTE path
+# where you download the dafoam_mcp_server repository. For example, if you have
+# it in your home directory: base_path = "/home/your_user_name/dafoam_mcp_server"
 
-# NATIVE MODE (work only on Linux; assuming you have compiled DAFoam from source)
-# If you use the native mode, please comment the above Docker mode paths,
-# then uncomment and modify the following paths. Make sure to use the ABSOLUTE paths
-# where you have the dafoam_mcp_server repo downloaded
-# airfoil_path = "/home/yourusername/dafoam_mcp_server/airfoils/"
-# wing_path = "/home/yourusername/dafoam_mcp_server/wings/"
+base_path = "/home/dafoamuser/mount"
+
+# =============================================================================
+# USER CONFIGURATION - End
+# =============================================================================
+
 
 # Suppress all logging to stdout/stderr before MCP starts
 logging.basicConfig(level=logging.CRITICAL)
 
 # Initialize FastMCP server
 mcp = FastMCP("dafoam_mcp_server")
+
+# setup paths for airfoil and wing modules based on base_path
+airfoil_path = base_path + "/airfoils/"
+wing_path = base_path + "/wings/"
 
 
 @mcp.tool()
@@ -564,7 +571,7 @@ async def wing_generate_geometry(
 ):
     """
     Wing module:
-        Generate wing iges geometry using pyGeo and convert it to stl using ParaView. 
+        Generate wing iges geometry using pyGeo and convert it to stl using ParaView.
         Here we assume x is the flow direction, y is the airfoil
         vertical direction, and z is the wing spanwise direction.
 
