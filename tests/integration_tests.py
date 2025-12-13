@@ -249,7 +249,7 @@ def test_wing_generate_geometry():
 
         # Check for expected output files
         expected_files = [
-            "../wings/wing.iges",
+            "../wings/wing_mm.iges",
             "../wings/constant/triSurface/wing_upper.stl",
             "../wings/constant/triSurface/wing_lower.stl",
             "../wings/constant/triSurface/wing_te.stl",
