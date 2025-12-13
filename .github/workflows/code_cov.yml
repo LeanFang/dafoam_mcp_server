@@ -23,7 +23,7 @@ jobs:
           docker run -i -d -u dafoamuser --name codecov_container -v $GITHUB_WORKSPACE:/home/dafoamuser/repo dafoam_mcp_server /bin/bash
           docker exec -i codecov_container /bin/bash -c "mkdir -p /home/dafoamuser/mount && cp -r /home/dafoamuser/repo/* /home/dafoamuser/mount/"
           docker exec -i codecov_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/mount && pip install coverage"
-          docker exec -i codecov_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/mount/tests && coverage run --source=./*.py,../wings/*.py,../airfoils/*.py integration_tests.py"
+          docker exec -i codecov_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/mount/tests && coverage run --source=../dafoam_mcp_server.py,../wings,../airfoils integration_tests.py"
           docker exec -i codecov_container /bin/bash -c ". ${{env.DOCKER_ENV_FILE}} && cd /home/dafoamuser/mount/tests && coverage xml"
           docker cp codecov_container:/home/dafoamuser/mount/tests/coverage.xml $GITHUB_WORKSPACE/coverage.xml
 
