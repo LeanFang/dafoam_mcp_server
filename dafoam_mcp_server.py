@@ -730,17 +730,16 @@ async def wing_generate_mesh(
         mesh_stats = parse_mesh_statistics(log_file_path)
 
         # Create HTML wrapper using multi-image function
-        html_filename = "wing_mesh_all_views.html"
-        create_image_html(
-            wing_path,
-            [
-                "plots/wing_mesh_view_3d.png",
-                "plots/wing_mesh_view_y.png",
-                "plots/wing_mesh_view_x.png",
-                "plots/wing_mesh_view_z.png",
-            ],
-            html_filename,
-        )
+        output_filename = "wing_mesh_all_views"
+        image_files = [
+            "plots/wing_mesh_view_3d.png",
+            "plots/wing_mesh_view_y.png",
+            "plots/wing_mesh_view_x.png",
+            "plots/wing_mesh_view_z.png",
+        ]
+
+        create_image_html(wing_path, image_files, output_filename + ".html")
+        combine_pngs(wing_path, image_files, output_filename + ".png")
 
         # Start trame viewer on port 8002 for wing.
         trame_url = start_trame_viewer(f"{wing_path}", "VTK/wings_0/boundary.vtp")
@@ -751,7 +750,8 @@ async def wing_generate_mesh(
             f"  - Number of mesh cells: {mesh_stats['cells']}\n"
             f"  - Mesh max non-orthogonality: {mesh_stats['max_non_orthogonality']:.2f}°\n"
             f"  - Mesh max skewness: {mesh_stats['max_skewness']:.2f}\n\n"
-            f"View the mesh at: http://localhost:8001/wing/{html_filename} \n"
+            f"View the mesh at: http://localhost:8001/wing/{output_filename}.html \n"
+            f"Combined PNG path:{wing_path}/plots/{output_filename}.png \n"
             f"Interactive 3D viewer: {trame_url}"
         )
 
