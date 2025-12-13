@@ -119,7 +119,7 @@ ax = plt.gca()
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 plt.tight_layout()
-plt.savefig("plots/airfoil_residual_cfd.png", dpi=200)
+plt.savefig("plots/wing_residual_cfd.png", dpi=200)
 plt.close()
 
 if len(adjoint_residuals) != 0:

@@ -246,7 +246,7 @@ else:
         ax2.spines["top"].set_visible(False)
         ax2.spines["right"].set_visible(False)
         plt.savefig(
-            f"plots/airfoil_pressure_profile_{iterI}_{label}.png",
+            f"plots/wing_pressure_profile_{iterI}_{label}.png",
             dpi=200,
             bbox_inches="tight",
         )

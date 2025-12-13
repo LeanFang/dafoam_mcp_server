@@ -66,7 +66,7 @@ plt.annotate(
     arrowprops=dict(arrowstyle="->", lw=2, color="black"),
 )
 plt.tight_layout()
-plt.savefig("plots/airfoil_function_cd.png", dpi=200)
+plt.savefig("plots/wing_function_cd.png", dpi=200)
 plt.close()
 
 # Create the plot CL
@@ -100,7 +100,7 @@ plt.annotate(
     arrowprops=dict(arrowstyle="->", lw=2, color="black"),
 )
 plt.tight_layout()
-plt.savefig("plots/airfoil_function_cl.png", dpi=200)
+plt.savefig("plots/wing_function_cl.png", dpi=200)
 plt.close()
 
 # Create the plot CM
@@ -134,5 +134,5 @@ plt.annotate(
     arrowprops=dict(arrowstyle="->", lw=2, color="black"),
 )
 plt.tight_layout()
-plt.savefig("plots/airfoil_function_cm.png", dpi=200)
+plt.savefig("plots/wing_function_cm.png", dpi=200)
 plt.close()
