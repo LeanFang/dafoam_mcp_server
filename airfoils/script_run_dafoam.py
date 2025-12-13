@@ -254,7 +254,7 @@ if args.optimizer == "SNOPT":
         "Minor feasibility tolerance": 1.0e-4,
         "Verify level": -1,
         "Function precision": 1.0e-5,
-        "Major iterations limit": 20,
+        "Major iterations limit": args.max_opt_iters,
         "Nonderivative linesearch": None,
         "Print file": "opt_SNOPT_print.txt",
         "Summary file": "opt_SNOPT_summary.txt",
@@ -263,7 +263,7 @@ elif args.optimizer == "IPOPT":
     prob.driver.opt_settings = {
         "tol": 1.0e-4,
         "constr_viol_tol": 1.0e-4,
-        "max_iter": 20,
+        "max_iter": args.max_opt_iters,
         "print_level": 5,
         "output_file": "opt_IPOPT.txt",
         "mu_strategy": "adaptive",
@@ -276,7 +276,7 @@ elif args.optimizer == "IPOPT":
 elif args.optimizer == "SLSQP":
     prob.driver.opt_settings = {
         "ACC": 1.0e-4,
-        "MAXIT": 20,
+        "MAXIT": args.max_opt_iters,
         "IFILE": "opt_SLSQP.txt",
     }
 else:

@@ -346,10 +346,7 @@ async def airfoil_view_optimization_history():
         Message indicating the status with HTML links. Must show the link in bold to users.
     """
 
-    bash_command = (
-        f"cd {airfoil_path} && "
-        f"python script_plot_optimization_history.py"
-    )
+    bash_command = f"cd {airfoil_path} && " f"python script_plot_optimization_history.py"
 
     try:
         # run in non-blocking mode
@@ -433,15 +430,15 @@ async def view_cfd_convergence(
         )
 
         # Create a single HTML with both images
-        html_filename = "airfoil_convergence.html"
+        html_filename = f"{module}_convergence.html"
         image_files = [
-            "plots/airfoil_function_cd.png",
-            "plots/airfoil_function_cl.png",
-            "plots/airfoil_function_cm.png",
-            "plots/airfoil_residual_cfd.png",
+            f"plots/{module}_function_cd.png",
+            f"plots/{module}_function_cl.png",
+            f"plots/{module}_function_cm.png",
+            f"plots/{module}_residual_cfd.png",
         ]
         if log_file == "log_optimization.txt":
-            image_files.append("plots/airfoil_residual_adjoint.png")
+            image_files.append(f"plots/{module}_residual_adjoint.png")
         create_image_html(case_path, image_files, html_filename)
 
         return (
@@ -1223,10 +1220,7 @@ def start_trame_viewer(case_path: str, mesh_file: str):
     kill_command = f"lsof -ti:{port} | xargs kill -9 2>/dev/null || true"
     subprocess.run(["bash", "-c", kill_command], capture_output=True)
 
-    bash_command = (
-        f"cd {case_path} && "
-        f"nohup python script_trame.py -mesh_file={mesh_file} "
-    )
+    bash_command = f"cd {case_path} && " f"nohup python script_trame.py -mesh_file={mesh_file} "
 
     try:
         # run in non-blocking mode

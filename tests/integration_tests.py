@@ -218,7 +218,16 @@ def test_airfoil_run_optimization_and_views():
         opt_result = asyncio.run(airfoil_view_optimization_history())
         print(f"    Output: {opt_result}")
 
-        if check_files_exist(["../airfoils/airfoil_optimization_history.html"]):
+        if check_files_exist(
+            [
+                "../airfoils/plots/airfoil_opt_hst_cd.png",
+                "../airfoils/plots/airfoil_opt_hst_cl.png",
+                "../airfoils/plots/airfoil_opt_hst_aoa.png",
+                "../airfoils/plots/airfoil_opt_hst_shape.png",
+                "../airfoils/plots/airfoil_opt_hst_optimality.png",
+                "../airfoils/plots/airfoil_opt_hst_feasibility.png",
+            ]
+        ):
             print("[PASS] airfoil_run_optimization_and_views PASSED\n")
             return True
         else:
@@ -333,7 +342,10 @@ def test_wing_run_cfd_and_views():
 
         # Check all visualization files
         visualization_files = [
-            "../wings/plots/wing_convergence.html",
+            "../wings/plots/wing_function_cd.png",
+            "../wings/plots/wing_function_cl.png",
+            "../wings/plots/wing_function_cm.png",
+            "../wings/plots/wing_residual_cfd.png",
             "../wings/plots/wing_pressure_profile.html",
             "../wings/plots/wing_flow_field.html",
         ]
