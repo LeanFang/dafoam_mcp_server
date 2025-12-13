@@ -199,7 +199,7 @@ else:
 
         # Fetch and plot for specific frame (same code as in loop)
         multi_block_data = servermanager.Fetch(plotOnSortedLines1)
-        
+
         # Navigate through the nested structure (ParaView 5.13)
         # For 2D airfoil: MultiBlock -> Block(0) -> Block(0) -> Block(0) to get to actual polydata
         block0 = multi_block_data.GetBlock(0)
