@@ -38,7 +38,7 @@ wing_mmiges.RelativeDeflection = 0
 wing_mmiges.ReadWire = 0
 
 # get active view
-renderView1 = GetActiveViewOrCreate('RenderView')
+renderView1 = GetActiveViewOrCreate("RenderView")
 
 # Apply scaling transform
 transform1 = Transform(registrationName="Transform1", Input=wing_mmiges)
