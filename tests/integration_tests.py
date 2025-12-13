@@ -53,6 +53,26 @@ async def wait_for_run_completion(module="airfoil", timeout=600, check_interval=
     return False
 
 
+def check_files_exist(file_paths):
+    """
+    Check if a list of files exist.
+
+    Args:
+        file_paths: List of file paths to check
+
+    Returns:
+        bool: True if all files exist, False otherwise
+    """
+    all_exist = True
+    for file_path in file_paths:
+        if not Path(file_path).exists():
+            print(f"    [FAIL] Missing: {file_path}")
+            all_exist = False
+        else:
+            print(f"    [PASS] Found: {file_path}")
+    return all_exist
+
+
 def test_airfoil_generate_mesh():
     """Test airfoil_generate_mesh function."""
     print("Testing airfoil_generate_mesh...")
@@ -71,27 +91,19 @@ def test_airfoil_generate_mesh():
 
         # Check for expected output files
         expected_files = [
-            "airfoils/log_mesh.txt",
-            "airfoils/plots/airfoil_mesh_overview.png",
-            "airfoils/plots/airfoil_mesh_le.png",
-            "airfoils/plots/airfoil_mesh_te.png",
-            "airfoils/plots/airfoil_mesh_all_views.html",
+            "../airfoils/log_mesh.txt",
+            "../airfoils/plots/airfoil_mesh_overview.png",
+            "../airfoils/plots/airfoil_mesh_le.png",
+            "../airfoils/plots/airfoil_mesh_te.png",
+            "../airfoils/plots/airfoil_mesh_all_views.html",
         ]
 
-        missing_files = []
-        for file_path in expected_files:
-            if not Path(file_path).exists():
-                missing_files.append(file_path)
-                print(f"  [FAIL] Missing: {file_path}")
-            else:
-                print(f"  [PASS] Found: {file_path}")
-
-        if missing_files:
+        if check_files_exist(expected_files):
+            print("[PASS] airfoil_generate_mesh PASSED\n")
+            return True
+        else:
             print("[FAIL] airfoil_generate_mesh FAILED\n")
             return False
-
-        print("[PASS] airfoil_generate_mesh PASSED\n")
-        return True
 
     except Exception as e:
         print(f"[FAIL] Exception: {str(e)}\n")
@@ -107,12 +119,10 @@ def test_airfoil_view_mesh():
         print(f"Output: {result}")
 
         # Check for expected output file
-        if Path("airfoils/plots/airfoil_mesh.png").exists():
-            print("  [PASS] Found: airfoils/plots/airfoil_mesh.png")
+        if check_files_exist(["../airfoils/plots/airfoil_mesh.html"]):
             print("[PASS] airfoil_view_mesh PASSED\n")
             return True
         else:
-            print("  [FAIL] Missing: airfoils/plots/airfoil_mesh.png")
             print("[FAIL] airfoil_view_mesh FAILED\n")
             return False
 
@@ -137,7 +147,7 @@ def test_airfoil_run_cfd_and_views():
 
         # Wait for completion
         print("  Waiting for CFD simulation to complete...")
-        completed = asyncio.run(wait_for_run_completion(module="airfoil", timeout=600, check_interval=10))
+        completed = asyncio.run(wait_for_run_completion(module="airfoil", timeout=60, check_interval=5))
 
         if not completed:
             print("[FAIL] CFD simulation did not complete in time\n")
@@ -156,8 +166,19 @@ def test_airfoil_run_cfd_and_views():
         flow_result = asyncio.run(airfoil_view_flow_field())
         print(f"    Output: {flow_result}")
 
-        print("[PASS] airfoil_run_cfd_and_views PASSED\n")
-        return True
+        # Check all visualization files
+        visualization_files = [
+            "../airfoils/plots/airfoil_convergence.html",
+            "../airfoils/plots/airfoil_pressure_profile.html",
+            "../airfoils/plots/airfoil_flow_field.html",
+        ]
+
+        if check_files_exist(visualization_files):
+            print("[PASS] airfoil_run_cfd_and_views PASSED\n")
+            return True
+        else:
+            print("[FAIL] airfoil_run_cfd_and_views FAILED\n")
+            return False
 
     except Exception as e:
         print(f"[FAIL] Exception: {str(e)}\n")
@@ -169,9 +190,15 @@ def test_airfoil_run_optimization_and_views():
     print("Testing airfoil_run_optimization and related views...")
 
     try:
+        # Clean up the run finished marker from previous CFD run
+        run_finished_marker = Path("../airfoils/.dafoam_run_finished")
+        if run_finished_marker.exists():
+            run_finished_marker.unlink()
+            print("  Cleaned up previous run marker")
+
         # Start optimization
         print("  Starting optimization...")
-        result = asyncio.run(airfoil_run_optimization(max_opt_iters=3))
+        result = asyncio.run(airfoil_run_optimization(max_opt_iters=2))
         print(f"  Output: {result}")
 
         if "background" not in str(result).lower() and "started" not in str(result).lower():
@@ -191,8 +218,12 @@ def test_airfoil_run_optimization_and_views():
         opt_result = asyncio.run(airfoil_view_optimization_history())
         print(f"    Output: {opt_result}")
 
-        print("[PASS] airfoil_run_optimization_and_views PASSED\n")
-        return True
+        if check_files_exist(["../airfoils/airfoil_optimization_history.html"]):
+            print("[PASS] airfoil_run_optimization_and_views PASSED\n")
+            return True
+        else:
+            print("[FAIL] airfoil_run_optimization_and_views FAILED\n")
+            return False
 
     except Exception as e:
         print(f"[FAIL] Exception: {str(e)}\n")
@@ -206,8 +237,23 @@ def test_wing_generate_geometry():
     try:
         result = asyncio.run(wing_generate_geometry())
         print(f"Output: {result}")
-        print("[PASS] wing_generate_geometry PASSED\n")
-        return True
+
+        # Check for expected output files
+        expected_files = [
+            "../wings/wing.stl",
+            "../wings/plots/wing_geometry_view_3d.png",
+            "../wings/plots/wing_geometry_view_y.png",
+            "../wings/plots/wing_geometry_view_x.png",
+            "../wings/plots/wing_geometry_view_z.png",
+            "../wings/plots/wing_geometry_all_views.html",
+        ]
+
+        if check_files_exist(expected_files):
+            print("[PASS] wing_generate_geometry PASSED\n")
+            return True
+        else:
+            print("[FAIL] wing_generate_geometry FAILED\n")
+            return False
 
     except Exception as e:
         print(f"[FAIL] Exception: {str(e)}\n")
@@ -221,8 +267,23 @@ def test_wing_generate_mesh():
     try:
         result = asyncio.run(wing_generate_mesh())
         print(f"Output: {result}")
-        print("[PASS] wing_generate_mesh PASSED\n")
-        return True
+
+        # Check for expected output files
+        expected_files = [
+            "../wings/log_mesh.txt",
+            "../wings/plots/wing_mesh_view_3d.png",
+            "../wings/plots/wing_mesh_view_y.png",
+            "../wings/plots/wing_mesh_view_x.png",
+            "../wings/plots/wing_mesh_view_z.png",
+            "../wings/plots/wing_mesh_all_views.html",
+        ]
+
+        if check_files_exist(expected_files):
+            print("[PASS] wing_generate_mesh PASSED\n")
+            return True
+        else:
+            print("[FAIL] wing_generate_mesh FAILED\n")
+            return False
 
     except Exception as e:
         print(f"[FAIL] Exception: {str(e)}\n")
@@ -234,6 +295,12 @@ def test_wing_run_cfd_and_views():
     print("Testing wing_run_cfd_simulation and related views...")
 
     try:
+        # Clean up the run finished marker from any previous run
+        run_finished_marker = Path("../wings/.dafoam_run_finished")
+        if run_finished_marker.exists():
+            run_finished_marker.unlink()
+            print("  Cleaned up previous run marker")
+
         # Start CFD simulation
         print("  Starting wing CFD simulation...")
         result = asyncio.run(wing_run_cfd_simulation(primal_func_std_tol=1e-2))
@@ -264,8 +331,19 @@ def test_wing_run_cfd_and_views():
         flow_result = asyncio.run(wing_view_flow_field())
         print(f"    Output: {flow_result}")
 
-        print("[PASS] wing_run_cfd_and_views PASSED\n")
-        return True
+        # Check all visualization files
+        visualization_files = [
+            "../wings/plots/wing_convergence.html",
+            "../wings/plots/wing_pressure_profile.html",
+            "../wings/plots/wing_flow_field.html",
+        ]
+
+        if check_files_exist(visualization_files):
+            print("[PASS] wing_run_cfd_and_views PASSED\n")
+            return True
+        else:
+            print("[FAIL] wing_run_cfd_and_views FAILED\n")
+            return False
 
     except Exception as e:
         print(f"[FAIL] Exception: {str(e)}\n")

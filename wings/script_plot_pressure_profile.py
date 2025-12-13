@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument("-mach_number", help="mach number", type=float, default=0.1)
 parser.add_argument("-time_step", help="which time step to visualize", type=int, default=-1)
-parser.add_argument("-span", help="total span length", type=float, default=1.0)
+parser.add_argument("-wing_span", help="total span length", type=float, default=1.0)
 parser.add_argument(
     "-spanwise_chords",
     help="chord lengths at 10, 50, and 90 percent of the span",
@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 # Parse spanwise_chords
 chords = args.spanwise_chords
-span_locations = [0.1 * args.span, 0.5 * args.span, 0.9 * args.span]
+span_locations = [0.1 * args.wing_span, 0.5 * args.wing_span, 0.9 * args.wing_span]
 span_labels = ["10_percent_span", "50_percent_span", "90_percent_span"]
 
 C0 = 347.2

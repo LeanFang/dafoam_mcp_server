@@ -81,12 +81,12 @@ wing = pyGeo(
 )
 
 wing.writeTecplot("wing.dat")
-wing.writeIGES("wing.igs")
+wing.writeIGES("wing.iges")
 
 
 gmsh.initialize()
 gmsh.option.setNumber("Geometry.OCCScaling", 0.001)
-gmsh.merge("wing.igs")
+gmsh.merge("wing.iges")
 
 # Synchronize to make entities available
 gmsh.model.occ.synchronize()

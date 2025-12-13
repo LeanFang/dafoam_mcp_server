@@ -15,7 +15,7 @@ parser.add_argument(
     default=1.0,
 )
 parser.add_argument(
-    "-span",
+    "-wing_span",
     help="span",
     type=float,
     default=3.0,
@@ -23,10 +23,10 @@ parser.add_argument(
 parser.add_argument("-flow_field", help="flow field variable to plot", type=str, default="p")
 args = parser.parse_args()
 
-span = args.span
-zoom_in_scale = span * 0.4
+wing_span = args.wing_span
+zoom_in_scale = wing_span * 0.4
 mean_chord = args.mean_chord
-mean_span = span / 2.0
+mean_span = wing_span / 2.0
 
 # create a new 'OpenFOAMReader'
 paraviewfoam = OpenFOAMReader(registrationName="paraview.foam", FileName="paraview.foam")

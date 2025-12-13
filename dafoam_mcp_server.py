@@ -636,7 +636,7 @@ async def wing_generate_mesh(
     mesh_refinement_level: int = 5,
     n_boundary_layers: int = 10,
     mean_chord: float = 1.0,
-    span: float = 3.0,
+    wing_span: float = 3.0,
     leading_edge_root: List[float] = [0.0, 0.0, 0.0],
     leading_edge_tip: List[float] = [0.0, 0.0, 3.0],
 ):
@@ -655,9 +655,9 @@ async def wing_generate_mesh(
         mean_chord:
             The average chord for the wing. NOTE: this value must be consistent with the averaged chords
             from the spanwise_chords args from the wing_generate_geometry function!
-        span:
+        wing_span:
             The span for the wing. NOTE: this value must be consistent with the spanwise_z args
-            from the wing_generate_geometry function! span = spanwise_z[-1] - spanwise_z[0]
+            from the wing_generate_geometry function! wing_span = spanwise_z[-1] - spanwise_z[0]
         leading_edge_root:
             The coordinates for the leading edge at the wing root. It will be calculated based on spanwise_x,
             spanwise_y, and spanwise_z from the wing_generate_geometry function. Here the size of spanwise_x
@@ -694,7 +694,7 @@ async def wing_generate_mesh(
         f"cp -r 0_orig 0 && "
         f"pvpython script_plot_mesh.py "
         f"-mean_chord={mean_chord} "
-        f"-span={span} "
+        f"-wing_span={wing_span} "
     )
 
     try:
@@ -765,7 +765,7 @@ async def wing_run_cfd_simulation(
             The Reynolds number, users can also use Re to denote the Reynolds number.
         reference_area:
             The reference area for normalizing forces. If users do not prescribe it, approximate it as
-            ref_area = mean_chord * span
+            ref_area = mean_chord * wing_span
         primal_func_std_tol:
             Primal function standard deviation tolerance for convergence.
     Returns:
@@ -812,7 +812,7 @@ async def wing_run_cfd_simulation(
 async def wing_view_pressure_profile(
     mach_number: float = 0.1,
     time_step: int = -1,
-    span: float = 3.0,
+    wing_span: float = 3.0,
     spanwise_chords: List[float] = [1.0, 1.0, 1.0],
 ):
     """
@@ -826,9 +826,9 @@ async def wing_view_pressure_profile(
         time_step:
             which time step to view. The time_step is the time-step for cfd simulation or
             optimization iteration for optimization. Default: -1 (all time steps)
-        span:
+        wing_span:
             The span for the wing. NOTE: this value must be consistent with the spanwise_z args
-            from the wing_generate_geometry function! span = spanwise_z[-1] - spanwise_z[0]
+            from the wing_generate_geometry function! wing_span = spanwise_z[-1] - spanwise_z[0]
         spanwise_chords:
             Airfoil chords for the 10%, 50%, and 90% of the spanwise location. Here spanwise_chords MUST be a 3D array.
             NOTE: the array's value must be consistent with the spanwise_chords args from the wing_generate_geometry
@@ -842,7 +842,7 @@ async def wing_view_pressure_profile(
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {wing_path} && "
-        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -time_step={time_step} -span={span} "
+        f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -time_step={time_step} -wing_span={wing_span} "
         f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
     )
 
@@ -869,7 +869,7 @@ async def wing_view_pressure_profile(
 
 
 @mcp.tool()
-async def wing_view_flow_field(mean_chord: float = 1.0, span: float = 3.0, flow_field: str = "p"):
+async def wing_view_flow_field(mean_chord: float = 1.0, wing_span: float = 3.0, flow_field: str = "p"):
     """
     Wing module:
         Allow users to view the details of a selected flow field variable.
@@ -879,9 +879,9 @@ async def wing_view_flow_field(mean_chord: float = 1.0, span: float = 3.0, flow_
         mean_chord:
             The average chord for the wing. NOTE: this value must be consistent with the averaged chords
             from the spanwise_chords args from the wing_generate_geometry function!
-        span:
+        wing_span:
             The span for the wing. NOTE: this value must be consistent with the spanwise_z args
-            from the wing_generate_geometry function! span = spanwise_z[-1] - spanwise_z[0]
+            from the wing_generate_geometry function! wing_span = spanwise_z[-1] - spanwise_z[0]
         flow_field:
             which flow field variable to visualize. Options are "U": velocity, "T": temperature,
             "p": pressure, "nut": turbulence viscosity (turbulence variable). Default: "p"
@@ -893,7 +893,7 @@ async def wing_view_flow_field(mean_chord: float = 1.0, span: float = 3.0, flow_
     bash_command = (
         f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {wing_path} && "
-        f"pvpython script_plot_flow_field.py -mean_chord={mean_chord} -span={span} -flow_field={flow_field}"
+        f"pvpython script_plot_flow_field.py -mean_chord={mean_chord} -wing_span={wing_span} -flow_field={flow_field}"
     )
 
     try:

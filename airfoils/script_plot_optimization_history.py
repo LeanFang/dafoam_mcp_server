@@ -451,7 +451,11 @@ def plot_all_figures(iterations, cd_values, cl_values, aoa_values, shape_vars):
             pass
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.semilogy(opt_iter, optimality, "-ko", linewidth=2, markersize=6)
+    # Replace zeros with a small positive value for log plotting
+    optimality_plot = np.array(optimality)
+    floor_value = 1e-16
+    optimality_plot[optimality_plot <= 0] = floor_value
+    ax.semilogy(opt_iter, optimality_plot, "-ko", linewidth=2, markersize=6)
     ax.set_xlabel("Major Iteration", fontsize=16)
     ax.set_ylabel("Optimality", fontsize=16)
     ax.set_title("Optimality History", fontsize=18, fontweight="bold")
@@ -466,7 +470,11 @@ def plot_all_figures(iterations, cd_values, cl_values, aoa_values, shape_vars):
     plt.close()
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.semilogy(opt_iter, feasibility, "-rs", linewidth=2, markersize=6)
+    # Replace zeros with a small positive value for log plotting
+    feasibility_plot = np.array(feasibility)
+    floor_value = 1e-16
+    feasibility_plot[feasibility_plot <= 0] = floor_value
+    ax.semilogy(opt_iter, feasibility_plot, "-rs", linewidth=2, markersize=6)
     ax.set_xlabel("Major Iteration", fontsize=16)
     ax.set_ylabel("Feasibility", fontsize=16)
     ax.set_title("Feasibility History", fontsize=18, fontweight="bold")

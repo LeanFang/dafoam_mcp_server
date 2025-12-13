@@ -15,17 +15,17 @@ parser.add_argument(
     default=1.0,
 )
 parser.add_argument(
-    "-span",
+    "-wing_span",
     help="span",
     type=float,
     default=3.0,
 )
 args = parser.parse_args()
 
-span = args.span
-zoom_in_scale = span * 0.4
+wing_span = args.wing_span
+zoom_in_scale = wing_span * 0.4
 mean_chord = args.mean_chord
-mean_span = span / 2.0
+mean_span = wing_span / 2.0
 
 # create a new 'OpenFOAMReader'
 paraviewfoam = OpenFOAMReader(registrationName="paraview.foam", FileName="paraview.foam")
@@ -56,8 +56,8 @@ text1 = Text(registrationName="Wing Mesh: Z view")
 text1.Text = f"Wing Mesh: Z view"
 text1Display = Show(text1, renderView1, "TextSourceRepresentation")
 renderView1.Update()
-text1Display.FontSize = 50
-text1Display.WindowLocation = "UpperCenter"
+text1Display.FontSize = 15
+text1Display.WindowLocation = "Upper Center"
 text1Display.Bold = 1
 text1Display.FontFamily = "Arial"
 text1Display.Color = [0.0, 0.0, 0.0]
