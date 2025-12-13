@@ -47,7 +47,7 @@ paraviewfoamDisplay.SetRepresentationType("Surface With Edges")
 renderView1.CameraParallelProjection = 1
 
 # Properties modified on paraviewfoam
-paraviewfoam.MeshRegions = ["sym", "wing"]
+paraviewfoam.MeshRegions = ["patch/sym", "patch/wing"]
 
 # update the view to ensure updated data information
 renderView1.Update()

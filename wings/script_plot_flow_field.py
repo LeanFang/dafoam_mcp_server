@@ -48,7 +48,7 @@ paraviewfoamDisplay.Representation = "Surface"
 renderView1.CameraParallelProjection = 1
 
 # Properties modified on paraviewfoam
-paraviewfoam.MeshRegions = ["symmetry", "wing"]
+paraviewfoam.MeshRegions = ["patch/sym", "patch/wing"]
 
 # white background
 # renderView1.Background = [1.0, 1.0, 1.0]
