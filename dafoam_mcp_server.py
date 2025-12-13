@@ -88,7 +88,6 @@ async def airfoil_generate_mesh(
 
     # Run DAFoam commands directly in this container with mpirun
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"./Allclean.sh && "
         f"python script_generate_mesh.py -airfoil_profile={airfoil_profile} -mesh_cells={mesh_cells} "
@@ -180,7 +179,6 @@ async def airfoil_run_cfd_simulation(
         os.system(f"cp -r {airfoil_path}/system/fvSolution_transonic {airfoil_path}/system/fvSolution")
 
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"rm -rf .dafoam_run_finished && "
         f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py "
@@ -250,7 +248,6 @@ async def airfoil_run_optimization(
         os.system(f"cp -r {airfoil_path}/system/fvSolution_transonic {airfoil_path}/system/fvSolution")
 
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"rm -rf .dafoam_run_finished && "
         f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py -task=run_driver "
@@ -310,7 +307,6 @@ async def airfoil_view_flow_field(
     """
 
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"pvpython script_plot_flow_field.py -x_location={x_location} -y_location={y_location} "
         f"-zoom_in_scale={zoom_in_scale} -flow_field={flow_field} -time_step={time_step}"
@@ -351,7 +347,6 @@ async def airfoil_view_optimization_history():
     """
 
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"python script_plot_optimization_history.py"
     )
@@ -422,7 +417,6 @@ async def view_cfd_convergence(
         case_path = wing_path
 
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {case_path} && "
         f"pvpython script_plot_residual.py "
         f"-log_file={log_file} -start_time_cfd={start_time_cfd} -end_time_cfd={end_time_cfd} "
@@ -477,7 +471,6 @@ async def airfoil_view_pressure_profile(mach_number: float = 0.1, time_step: int
     """
 
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -time_step={time_step}"
     )
@@ -525,7 +518,6 @@ async def airfoil_view_mesh(x_location: float = 0.5, y_location: float = 0.0, zo
     """
 
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {airfoil_path} && "
         f"pvpython script_plot_mesh.py -x_location={x_location} -y_location={y_location} -zoom_in_scale={zoom_in_scale}"
     )
@@ -585,7 +577,6 @@ async def wing_generate_geometry(
 
     # Build command line arguments
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {wing_path} && "
         f"./Allclean.sh && "
         f"python script_generate_geometry.py "
@@ -679,7 +670,6 @@ async def wing_generate_mesh(
     le_root = leading_edge_root
     le_tip = leading_edge_tip
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {wing_path} && "
         f"sed -i 's/^maxCellSize.*/maxCellSize {max_cell_size};/' system/meshDict && "
         f"sed -i 's/^refinementLevel.*/refinementLevel {mesh_refinement_level};/' system/meshDict && "
@@ -779,7 +769,6 @@ async def wing_run_cfd_simulation(
         os.system(f"cp -r {wing_path}/system/fvSolution_transonic {wing_path}/system/fvSolution")
 
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {wing_path} && "
         f"rm -rf .dafoam_run_finished && "
         f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py "
@@ -840,7 +829,6 @@ async def wing_view_pressure_profile(
     """
 
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {wing_path} && "
         f"pvpython script_plot_pressure_profile.py -mach_number={mach_number} -time_step={time_step} -wing_span={wing_span} "
         f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
@@ -891,7 +879,6 @@ async def wing_view_flow_field(mean_chord: float = 1.0, wing_span: float = 3.0, 
     """
 
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {wing_path} && "
         f"pvpython script_plot_flow_field.py -mean_chord={mean_chord} -wing_span={wing_span} -flow_field={flow_field}"
     )
@@ -1237,7 +1224,6 @@ def start_trame_viewer(case_path: str, mesh_file: str):
     subprocess.run(["bash", "-c", kill_command], capture_output=True)
 
     bash_command = (
-        f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
         f"cd {case_path} && "
         f"nohup python script_trame.py -mesh_file={mesh_file} "
     )
