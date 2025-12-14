@@ -579,6 +579,8 @@ async def wing_generate_geometry(
     spanwise_y: List[float] = [0.0, 0.0],
     spanwise_z: List[float] = [0.0, 3.0],
     spanwise_twists: List[float] = [0.0, 0.0],
+    n_ffd_chord: int = 8,
+    n_ffd_span: int = 5
 ):
     """
     Wing module:
@@ -599,6 +601,10 @@ async def wing_generate_geometry(
             Z coordinates for each spanwise section
         spanwise_twists:
             Twist angles for each spanwise section
+        n_ffd_chord:
+            The number of FFD points in the chordwise direction
+        n_ffd_span:
+            The number of FFD points in the spanwise direction
 
     Returns:
         Status message and list of generated files. Must show the HTML link and path to combine PNG in bold to users.
@@ -630,6 +636,8 @@ async def wing_generate_geometry(
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
         f"-spanwise_chords {' '.join(map(str, spanwise_chords))} && "
         f"python script_generate_ffd.py "
+        f"-n_ffd_chord {n_ffd_chord} "
+        f"-n_ffd_span {n_ffd_span} "
         f"-spanwise_x {' '.join(map(str, spanwise_x))} "
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
         f"-spanwise_twists {' '.join(map(str, spanwise_twists))} "

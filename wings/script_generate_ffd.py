@@ -32,6 +32,18 @@ parser.add_argument(
     type=float,
     default=[0.0, 0.0],
 )
+parser.add_argument(
+    "-n_ffd_chord",
+    help="The number of FFD points in the chordwise direction",
+    type=int,
+    default=8,
+)
+parser.add_argument(
+    "-n_ffd_span",
+    help="The number of FFD points in the spanwise direction",
+    type=int,
+    default=5,
+)
 args = parser.parse_args()
 
 # Scale all dimensions from millimeters to meters so that the tolerances match a regular use case
@@ -60,8 +72,8 @@ surf = [p0, p1, p2]
 surfFormat = "point-point"
 # Set the other FFD generation inputs
 outFile = "FFD/FFD.xyz"
-nSpan = 5
-nChord = 8
+nSpan = args.n_ffd_span
+nChord = args.n_ffd_chord
 relMargins = [0.02, 0.01, 0.2]
 absMargins = [0.04, 0.02, 0.02]
 liftIndex = 2
