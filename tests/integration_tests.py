@@ -19,7 +19,7 @@ from dafoam_mcp_server import (
     view_cfd_convergence,
     airfoil_view_pressure_profile,
     airfoil_view_flow_field,
-    airfoil_view_optimization_history,
+    view_optimization_history,
     wing_generate_geometry,
     wing_generate_mesh,
     wing_run_cfd_simulation,
@@ -220,8 +220,8 @@ def test_airfoil_run_optimization_and_views():
             return False
 
         # Test visualization function
-        print("  Testing airfoil_view_optimization_history...")
-        opt_result = asyncio.run(airfoil_view_optimization_history())
+        print("  Testing view_optimization_history...")
+        opt_result = asyncio.run(view_optimization_history())
         print(f"    Output: {opt_result}")
 
         if check_files_exist(
