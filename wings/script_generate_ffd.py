@@ -36,13 +36,13 @@ parser.add_argument(
     "-n_ffd_chord",
     help="The number of FFD points in the chordwise direction",
     type=int,
-    default=8,
+    default=5,
 )
 parser.add_argument(
     "-n_ffd_span",
     help="The number of FFD points in the spanwise direction",
     type=int,
-    default=5,
+    default=3,
 )
 args = parser.parse_args()
 

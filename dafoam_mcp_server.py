@@ -579,8 +579,8 @@ async def wing_generate_geometry(
     spanwise_y: List[float] = [0.0, 0.0],
     spanwise_z: List[float] = [0.0, 3.0],
     spanwise_twists: List[float] = [0.0, 0.0],
-    n_ffd_chord: int = 8,
-    n_ffd_span: int = 5
+    n_ffd_chord: int = 5,
+    n_ffd_span: int = 3,
 ):
     """
     Wing module:
@@ -793,6 +793,10 @@ async def wing_run_cfd_simulation(
     reynolds_number: float = 1000000,
     reference_area: float = 1.0,
     primal_func_std_tol: float = 1e-4,
+    spanwise_chords: List[float] = [1.0, 1.0],
+    spanwise_x: List[float] = [0.0, 0.0],
+    spanwise_z: List[float] = [0.0, 3.0],
+    spanwise_twists: List[float] = [0.0, 0.0],
 ):
     """
     Wing module:
@@ -802,7 +806,8 @@ async def wing_run_cfd_simulation(
     Args:
         cpu_cores:
             The number of CPU cores to use. We should use 1 core for < 100,000 mesh cells,
-            and use one more core for every 100,000 more cells. DO NOT use more than 4 cores
+            and use one more core for every 100,000 more cells. DO NOT use more cores than
+            the system has.
         angle_of_attack:
             The angle of attack (aoa) boundary condition at the far field.
         mach_number:
@@ -814,6 +819,18 @@ async def wing_run_cfd_simulation(
             ref_area = mean_chord * wing_span
         primal_func_std_tol:
             Primal function standard deviation tolerance for convergence.
+        spanwise_chords:
+            Airfoil chords for each spanwise section. NOTE: this value must be consistent with the
+            spanwise_chords args from the wing_generate_geometry function!
+        spanwise_x:
+            X coordinates for each spanwise section. NOTE: this value must be consistent with the
+            spanwise_x args from the wing_generate_geometry function!
+        spanwise_z:
+            Z coordinates for each spanwise section. NOTE: this value must be consistent with the
+            spanwise_z args from the wing_generate_geometry function!
+        spanwise_twists:
+            Twist angles for each spanwise section. NOTE: this value must be consistent with the
+            spanwise_twists args from the wing_generate_geometry function!
     Returns:
         A message saying that the cfd simulation is running in the background
         and the progress is written to log_cfd_simulation.txt
@@ -827,11 +844,15 @@ async def wing_run_cfd_simulation(
     bash_command = (
         f"cd {wing_path} && "
         f"rm -rf .dafoam_run_finished && "
-        f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py "
+        f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py -task=run_model "
         f"-angle_of_attack={angle_of_attack} "
         f"-mach_number={mach_number} "
         f"-reference_area={reference_area} "
         f"-reynolds_number={reynolds_number} "
+        f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
+        f"-spanwise_x {' '.join(map(str, spanwise_x))} "
+        f"-spanwise_z {' '.join(map(str, spanwise_z))} "
+        f"-spanwise_twists {' '.join(map(str, spanwise_twists))} "
         f"-primal_func_std_tol={primal_func_std_tol} > log_cfd_simulation.txt 2>&1"
     )
 
@@ -851,6 +872,103 @@ async def wing_run_cfd_simulation(
 
     except Exception as e:
         return f"Error starting CFD simulation: {str(e)}"
+
+
+@mcp.tool()
+async def wing_run_optimization(
+    cpu_cores: int = 1,
+    angle_of_attack: float = 2,
+    mach_number: float = 0.1,
+    reynolds_number: float = 1000000,
+    reference_area: float = 1.0,
+    primal_func_std_tol: float = 1e-4,
+    lift_constraint: float = 0.5,
+    max_opt_iters: int = 50,
+    spanwise_chords: List[float] = [1.0, 1.0],
+    spanwise_x: List[float] = [0.0, 0.0],
+    spanwise_z: List[float] = [0.0, 3.0],
+    spanwise_twists: List[float] = [0.0, 0.0],
+):
+    """
+    Wing module:
+        Run CFD simulation/analysis to compute flow fields,
+        such as velocity, pressure, and temperature.
+
+    Args:
+        cpu_cores:
+            The number of CPU cores to use. We should use 1 core for < 100,000 mesh cells,
+            and use one more core for every 100,000 more cells. DO NOT use more cores than
+            the system has.
+        angle_of_attack:
+            The angle of attack (aoa) boundary condition at the far field.
+        mach_number:
+            The Mach number (Ma). mach_number > 0.6: transonic conditions, mach_number < 0.6 subsonic conditions.
+        reynolds_number:
+            The Reynolds number, users can also use Re to denote the Reynolds number.
+        reference_area:
+            The reference area for normalizing forces. If users do not prescribe it, approximate it as
+            ref_area = mean_chord * wing_span
+        primal_func_std_tol:
+            Primal function standard deviation tolerance for convergence.
+        spanwise_chords:
+            Airfoil chords for each spanwise section. NOTE: this value must be consistent with the
+            spanwise_chords args from the wing_generate_geometry function!
+        spanwise_x:
+            X coordinates for each spanwise section. NOTE: this value must be consistent with the
+            spanwise_x args from the wing_generate_geometry function!
+        spanwise_z:
+            Z coordinates for each spanwise section. NOTE: this value must be consistent with the
+            spanwise_z args from the wing_generate_geometry function!
+        spanwise_twists:
+            Twist angles for each spanwise section. NOTE: this value must be consistent with the
+            spanwise_twists args from the wing_generate_geometry function!
+        max_opt_iters:
+            Maximum number of optimization iterations to perform.
+        lift_constraint:
+            The lift constraint value for the optimization.
+    Returns:
+        A message saying that the cfd simulation is running in the background
+        and the progress is written to log_cfd_simulation.txt
+    """
+
+    if mach_number < 0.6:
+        os.system(f"cp -r {wing_path}/system/fvSolution_subsonic {wing_path}/system/fvSolution")
+    else:
+        os.system(f"cp -r {wing_path}/system/fvSolution_transonic {wing_path}/system/fvSolution")
+
+    bash_command = (
+        f"cd {wing_path} && "
+        f"rm -rf .dafoam_run_finished && "
+        f"mpirun --oversubscribe -np {cpu_cores} python script_run_dafoam.py -task=run_driver "
+        f"-angle_of_attack={angle_of_attack} "
+        f"-mach_number={mach_number} "
+        f"-reference_area={reference_area} "
+        f"-reynolds_number={reynolds_number} "
+        f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
+        f"-spanwise_x {' '.join(map(str, spanwise_x))} "
+        f"-spanwise_z {' '.join(map(str, spanwise_z))} "
+        f"-spanwise_twists {' '.join(map(str, spanwise_twists))} "
+        f"-lift_constraint={lift_constraint} "
+        f"-max_opt_iters={max_opt_iters} "
+        f"-primal_func_std_tol={primal_func_std_tol} > log_cfd_simulation.txt 2>&1"
+    )
+
+    try:
+        # Run in non-blocking background mode
+        subprocess.Popen(
+            ["bash", "-c", bash_command],
+            stdout=subprocess.DEVNULL,  # Don't let child write to our stdout
+            stderr=subprocess.DEVNULL,  # Don't let child write to our stderr
+            stdin=subprocess.DEVNULL,  # Don't let child read from our stdin
+        )
+        return (
+            "Optimization started in the background. "
+            "Progress is being written to log_optimization.txt. "
+            "Use check_run_status to check if it's finished."
+        )
+
+    except Exception as e:
+        return f"Error starting optimization: {str(e)}"
 
 
 @mcp.tool()
