@@ -1015,7 +1015,7 @@ async def wing_view_geometry_mesh(mode: str = "geometry", mean_chord: float = 0.
     # Start trame viewer on port 8002 for wing.
     trame_url = start_trame_viewer(f"{wing_path}", mesh_file, focal_x, focal_z)
 
-    return f"Interactive 3D viewer: {trame_url}"
+    return f"{trame_url}"
 
 
 @mcp.tool()

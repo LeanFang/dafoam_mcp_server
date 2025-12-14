@@ -102,10 +102,10 @@ z = args.spanwise_z
 twist = args.spanwise_twists
 
 for i in range(nSections):
-    leList[i, 0] = x[i] + 0.01
+    leList[i, 0] = x[i] + 0.05
     leList[i, 1] = -100.0
     leList[i, 2] = max(z[i], 0.01)
-    teList[i, 0] = x[i] + chord[i] * float(np.cos(np.radians(twist[i]))) - 0.01
+    teList[i, 0] = x[i] + chord[i] * float(np.cos(np.radians(twist[i]))) - 0.05
     teList[i, 1] = -100.0
     teList[i, 2] = max(z[i], 0.01)
 
