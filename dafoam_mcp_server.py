@@ -357,18 +357,24 @@ async def airfoil_view_flow_field(
 
 
 @mcp.tool()
-async def airfoil_view_optimization_history():
+async def view_optimization_history(module: str = "airfoil"):
     """
-    Airfoil Module:
+    Airfoil or Wing Module:
         Plot the optimization history
 
     Inputs:
-        None
+        module:
+            The module can be either "airfoil" or "wing"
     Outputs:
         Message indicating the status. Must show the HTML link and the path to the combine PNG in bold to users.
     """
 
-    bash_command = f"cd {airfoil_path} && " f"python script_plot_optimization_history.py"
+    if module == "airfoil":
+        case_path = airfoil_path
+    elif module == "wing":
+        case_path = wing_path
+
+    bash_command = f"cd {case_path} && " f"python script_plot_optimization_history.py"
 
     try:
         # run in non-blocking mode
@@ -379,22 +385,26 @@ async def airfoil_view_optimization_history():
         )
 
         # Create HTML wrapper using multi-image function
-        output_filename = "airfoil_optimization_history"
+        output_filename = f"{module}_optimization_history"
+        if module == "airfoil":
+            dv_name = "shape"
+        elif module == "wing":
+            dv_name = "twist"
         image_files = [
-            "plots/airfoil_opt_hst_cd.png",
-            "plots/airfoil_opt_hst_cl.png",
-            "plots/airfoil_opt_hst_aoa.png",
-            "plots/airfoil_opt_hst_shape.png",
-            "plots/airfoil_opt_hst_optimality.png",
-            "plots/airfoil_opt_hst_feasibility.png",
+            f"plots/{module}_opt_hst_cd.png",
+            f"plots/{module}_opt_hst_cl.png",
+            f"plots/{module}_opt_hst_aoa.png",
+            f"plots/{module}_opt_hst_{dv_name}.png",
+            f"plots/{module}_opt_hst_optimality.png",
+            f"plots/{module}_opt_hst_feasibility.png",
         ]
-        create_image_html(airfoil_path, image_files, output_filename + ".html")
-        combine_pngs(airfoil_path, image_files, output_filename + ".png")
+        create_image_html(case_path, image_files, output_filename + ".html")
+        combine_pngs(case_path, image_files, output_filename + ".png")
 
         return (
             "Optimization history plots successfully generated!\n\n"
-            f"View convergence: http://localhost:{FILE_HTTP_PORT}/airfoil/{output_filename}.html\n"
-            f"Combined PNG path: {airfoil_path}/plots/{output_filename}.png"
+            f"View convergence: http://localhost:{FILE_HTTP_PORT}/{module}/{output_filename}.html\n"
+            f"Combined PNG path: {case_path}/plots/{output_filename}.png"
         )
 
     except subprocess.CalledProcessError as e:
