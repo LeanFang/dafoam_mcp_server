@@ -24,8 +24,8 @@ args = parser.parse_args()
 
 wing_span = args.wing_span
 zoom_in_scale = wing_span * 0.4
-mean_chord = args.mean_chord
-mean_span = wing_span / 2.0
+focal_x = args.mean_chord / 2.0
+focal_z = wing_span / 2.0
 
 # create a new 'OpenFOAMReader'
 paraviewfoam = OpenFOAMReader(registrationName="paraview.foam", FileName="paraview.foam")
@@ -41,6 +41,21 @@ paraviewfoamDisplay.Representation = "Surface"
 
 # change representation type
 paraviewfoamDisplay.SetRepresentationType("Surface With Edges")
+
+fFDdat = TecplotReader(registrationName="FFD.dat", FileNames=["./FFD/FFD.dat"])
+
+# show data in view
+fFDdatDisplay = Show(fFDdat, renderView1, "StructuredGridRepresentation")
+
+# change representation type
+fFDdatDisplay.SetRepresentationType("Points")
+
+# Properties modified on fFDdatDisplay
+fFDdatDisplay.PointSize = 10.0
+
+# change solid color
+fFDdatDisplay.AmbientColor = [0.6666666666666666, 0.0, 0.0]
+fFDdatDisplay.DiffuseColor = [0.6666666666666666, 0.0, 0.0]
 
 
 # Properties modified on renderView1
@@ -63,8 +78,8 @@ text1Display.FontFamily = "Arial"
 text1Display.Color = [0.0, 0.0, 0.0]
 
 # current camera placement for renderView1
-renderView1.CameraPosition = [mean_chord, 0.0, 10]
-renderView1.CameraFocalPoint = [mean_chord, 0.0, 0]
+renderView1.CameraPosition = [focal_x, 0.0, 10]
+renderView1.CameraFocalPoint = [focal_x, 0.0, 0]
 renderView1.CameraParallelScale = zoom_in_scale * 0.5
 renderView1.CameraViewUp = [0.0, 1.0, 0.0]
 
@@ -75,8 +90,8 @@ text1.Text = f"Wing Mesh: Y view"
 renderView1.Update()
 
 # current camera placement for renderView1
-renderView1.CameraPosition = [mean_chord, 10.0, mean_span]
-renderView1.CameraFocalPoint = [mean_chord, 0.0, mean_span]
+renderView1.CameraPosition = [focal_x, 10.0, focal_z]
+renderView1.CameraFocalPoint = [focal_x, 0.0, focal_z]
 renderView1.CameraParallelScale = zoom_in_scale
 renderView1.CameraViewUp = [1.0, 0.0, 0.0]
 
@@ -87,8 +102,8 @@ text1.Text = f"Wing Mesh: X view"
 renderView1.Update()
 
 # current camera placement for renderView1
-renderView1.CameraPosition = [-10.0, 0.0, mean_span]
-renderView1.CameraFocalPoint = [0, 0.0, mean_span]
+renderView1.CameraPosition = [-10.0, 0.0, focal_z]
+renderView1.CameraFocalPoint = [0, 0.0, focal_z]
 renderView1.CameraParallelScale = zoom_in_scale
 renderView1.CameraViewUp = [0.0, 1.0, 0.0]
 
@@ -99,8 +114,8 @@ text1.Text = f"Wing Mesh: 3D view"
 renderView1.Update()
 
 # current camera placement for renderView1
-renderView1.CameraPosition = [mean_chord - 10.0, 10.0, mean_span + 10.0]
-renderView1.CameraFocalPoint = [mean_chord, 0.0, mean_span]
+renderView1.CameraPosition = [focal_x - 10.0, 10.0, focal_z + 10.0]
+renderView1.CameraFocalPoint = [focal_x, 0.0, focal_z]
 renderView1.CameraParallelScale = zoom_in_scale
 renderView1.CameraViewUp = [1.0, 1.0, -1.0]
 

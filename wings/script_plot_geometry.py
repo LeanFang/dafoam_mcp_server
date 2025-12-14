@@ -27,8 +27,8 @@ args = parser.parse_args()
 # 0.4 scale = 1.0 m span
 span = args.spanwise_z[-1] - args.spanwise_z[0]
 zoom_in_scale = span * 0.4
-mean_chord = sum(args.spanwise_chords) / len(args.spanwise_chords)
-mean_span = span / 2.0
+focal_x = sum(args.spanwise_chords) / len(args.spanwise_chords) / 2.0
+focal_z = span / 2.0
 
 # create a new 'STL Reader'
 wing_mmiges = IGESReader(registrationName="wing_mm.iges", FileNames=["wing_mm.iges"])
@@ -71,8 +71,8 @@ text1Display.FontFamily = "Arial"
 text1Display.Color = [0.0, 0.0, 0.0]
 
 # current camera placement for renderView1
-renderView1.CameraPosition = [mean_chord, 0.0, 10]
-renderView1.CameraFocalPoint = [mean_chord, 0.0, 0]
+renderView1.CameraPosition = [focal_x, 0.0, 10]
+renderView1.CameraFocalPoint = [focal_x, 0.0, 0]
 renderView1.CameraParallelScale = zoom_in_scale * 0.5
 renderView1.CameraViewUp = [0.0, 1.0, 0.0]
 
@@ -83,8 +83,8 @@ text1.Text = f"Wing Geometry: Y view"
 renderView1.Update()
 
 # current camera placement for renderView1
-renderView1.CameraPosition = [mean_chord, 10.0, mean_span]
-renderView1.CameraFocalPoint = [mean_chord, 0.0, mean_span]
+renderView1.CameraPosition = [focal_x, 10.0, focal_z]
+renderView1.CameraFocalPoint = [focal_x, 0.0, focal_z]
 renderView1.CameraParallelScale = zoom_in_scale
 renderView1.CameraViewUp = [1.0, 0.0, 0.0]
 
@@ -92,8 +92,8 @@ renderView1.CameraViewUp = [1.0, 0.0, 0.0]
 SaveScreenshot("plots/wing_geometry_view_y.png", renderView1, ImageResolution=[1923, 1158])
 
 # current camera placement for renderView1
-renderView1.CameraPosition = [-10.0, 0.0, mean_span]
-renderView1.CameraFocalPoint = [0, 0.0, mean_span]
+renderView1.CameraPosition = [-10.0, 0.0, focal_z]
+renderView1.CameraFocalPoint = [0, 0.0, focal_z]
 renderView1.CameraParallelScale = zoom_in_scale
 renderView1.CameraViewUp = [0.0, 1.0, 0.0]
 
@@ -107,8 +107,8 @@ text1.Text = f"Wing Geometry: 3D view"
 renderView1.Update()
 
 # current camera placement for renderView1
-renderView1.CameraPosition = [mean_chord - 10.0, 10.0, mean_span + 10.0]
-renderView1.CameraFocalPoint = [mean_chord, 0.0, mean_span]
+renderView1.CameraPosition = [focal_x - 10.0, 10.0, focal_z + 10.0]
+renderView1.CameraFocalPoint = [focal_x, 0.0, focal_z]
 renderView1.CameraParallelScale = zoom_in_scale
 renderView1.CameraViewUp = [1.0, 1.0, -1.0]
 

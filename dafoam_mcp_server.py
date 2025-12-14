@@ -616,6 +616,11 @@ async def wing_generate_geometry(
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
         f"-spanwise_twists {' '.join(map(str, spanwise_twists))} && "
         "pvpython --no-mpi script_iges2stl.py && "
+        "head -n 1 wing0.stl > wing.stl && "  # combine all wing sections into one stl file
+        "for f in wing0.stl wing1.stl wing2.stl wing3.stl wing4.stl; do "
+        "sed '1d;$d' $f >> wing.stl; done && "
+        "echo 'endsolid' >> wing.stl && "
+        "mv wing.stl constant/triSurface/wing.stl && "
         "mv wing0.stl constant/triSurface/wing_upper.stl && "
         "mv wing1.stl constant/triSurface/wing_lower.stl && "
         "mv wing2.stl constant/triSurface/wing_te.stl && "
@@ -623,7 +628,14 @@ async def wing_generate_geometry(
         "rm -rf *.stl && "
         f"pvpython --no-mpi script_plot_geometry.py "
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
-        f"-spanwise_chords {' '.join(map(str, spanwise_chords))} "
+        f"-spanwise_chords {' '.join(map(str, spanwise_chords))} && "
+        f"python script_generate_ffd.py "
+        f"-spanwise_x {' '.join(map(str, spanwise_x))} "
+        f"-spanwise_z {' '.join(map(str, spanwise_z))} "
+        f"-spanwise_twists {' '.join(map(str, spanwise_twists))} "
+        f"-spanwise_chords {' '.join(map(str, spanwise_chords))} && "
+        f"dafoam_plot3d2tecplot.py FFD/FFD.xyz FFD/FFD.dat && "
+        f'sed -i "/Zone T=\\"embedding_vol\\"/,\\$d" FFD/FFD.dat'
     )
 
     try:
@@ -645,10 +657,17 @@ async def wing_generate_geometry(
         create_image_html(wing_path, image_files, output_filename + ".html")
         combine_pngs(wing_path, image_files, output_filename + ".png")
 
+        # Calculate focal point coords for trame viewer
+        mean_chord = sum(spanwise_chords) / len(spanwise_chords)
+        wing_span = spanwise_z[-1] - spanwise_z[0]
+
+        trame_url = wing_view_geometry_mesh(mode="mesh", mean_chord=mean_chord, wing_span=wing_span)
+
         return (
             "Wing geometry is successfully generated!\n\n"
             f"View the geometry at: http://localhost:{FILE_HTTP_PORT}/wing/{output_filename}.html\n"
-            f"Combined PNG path: {wing_path}/plots/{output_filename}.png"
+            f"Combined PNG path: {wing_path}/plots/{output_filename}.png \n"
+            f"Interactive 3D viewer: {trame_url}"
         )
 
     except subprocess.CalledProcessError as e:
@@ -741,8 +760,7 @@ async def wing_generate_mesh(
         create_image_html(wing_path, image_files, output_filename + ".html")
         combine_pngs(wing_path, image_files, output_filename + ".png")
 
-        # Start trame viewer on port 8002 for wing.
-        trame_url = start_trame_viewer(f"{wing_path}", "VTK/wings_0/boundary.vtp")
+        trame_url = wing_view_geometry_mesh(mode="mesh", mean_chord=mean_chord, wing_span=wing_span)
 
         return (
             "Wing mesh is successfully generated!\n\n"
@@ -825,6 +843,43 @@ async def wing_run_cfd_simulation(
 
     except Exception as e:
         return f"Error starting CFD simulation: {str(e)}"
+
+
+@mcp.tool()
+async def wing_view_geometry_mesh(mode: str = "geometry", mean_chord: float = 0.5, wing_span: float = 1.5):
+    """
+    Wing module:
+        Allow users to view detail wing geometry or mesh. The geometry and mesh must have been generated in wings
+
+    Inputs:
+        mode:
+            which to view, "geometry" or "mesh"
+        mean_chord:
+            The average chord for the wing. NOTE: this value must be consistent with the averaged chords
+            from the spanwise_chords args from the wing_generate_geometry function!
+        wing_span:
+            The span for the wing. NOTE: this value must be consistent with the spanwise_z args
+            from the wing_generate_geometry function! wing_span = spanwise_z[-1] - spanwise_z[0]
+
+    Outputs:
+        Message indicating the status. Must show the HTML link in bold to users.
+    """
+
+    # Calculate focal point coords for trame viewer
+    focal_x = mean_chord / 2.0
+    focal_z = wing_span / 2.0
+
+    if mode == "geometry":
+        mesh_file = "constant/triSurface/wing.stl"
+    elif mode == "mesh":
+        mesh_file = "VTK/wings_0/boundary.vtp"
+    else:
+        return "Error: mode must be either 'geometry' or 'mesh'."
+
+    # Start trame viewer on port 8002 for wing.
+    trame_url = start_trame_viewer(f"{wing_path}", mesh_file, focal_x, focal_z)
+
+    return f"Interactive 3D viewer: {trame_url}"
 
 
 @mcp.tool()
@@ -1303,10 +1358,20 @@ def download_airfoil_from_uiuc(airfoil_name, save_path):
         return False
 
 
-def start_trame_viewer(case_path: str, mesh_file: str):
+def start_trame_viewer(case_path: str, mesh_file: str, focal_x: float = 1.0, focal_z: float = 1.5) -> str:
     """
     Start trame viewer in background process.
     Python need to pip install vtk trame trame-vuetify trame-vtk --break-system-packages
+
+    Args:
+        case_path:
+            Path to the case directory where script_trame.py is located
+        mesh_file:
+            Path to the mesh file relative to case_path
+        focal_x:
+             the focal point x coordinate
+        focal_z:
+            the focal point z coordinate
     """
 
     port = 8002
@@ -1315,7 +1380,11 @@ def start_trame_viewer(case_path: str, mesh_file: str):
     kill_command = f"lsof -ti:{port} | xargs kill -9 2>/dev/null || true"
     subprocess.run(["bash", "-c", kill_command], capture_output=True)
 
-    bash_command = f"cd {case_path} && " f"nohup python script_trame.py -mesh_file={mesh_file} "
+    bash_command = (
+        f"cd {case_path} && "
+        f"nohup python script_trame.py "
+        f"-mesh_file={mesh_file} -focal_x={focal_x} -focal_z={focal_z} "
+    )
 
     try:
         # run in non-blocking mode
@@ -1326,9 +1395,9 @@ def start_trame_viewer(case_path: str, mesh_file: str):
             stdin=subprocess.DEVNULL,  # Don't let child read from our stdin
         )
     except Exception as e:
-        return f"Error starting CFD simulation: {str(e)}"
+        return f"Error starting trame viewer: {str(e)}"
 
-    return f"http://127.0.0.1:{port}"
+    return f"http://localhost:{port}"
 
 
 # HTTP server configuration for file serving
