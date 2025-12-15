@@ -449,10 +449,10 @@ async def view_cfd_convergence(
 
     bash_command = (
         f"cd {case_path} && "
-        f"pvpython --no-mpi script_plot_residual.py "
+        f"python script_plot_residual.py "
         f"-log_file={log_file} -start_time_cfd={start_time_cfd} -end_time_cfd={end_time_cfd} "
         f"-start_time_adjoint={start_time_adjoint} -end_time_adjoint={end_time_adjoint} && "
-        f"pvpython --no-mpi script_plot_function.py -log_file={log_file} "
+        f"python script_plot_function.py -log_file={log_file} "
         f"-start_time={start_time_cfd} -end_time={end_time_cfd}"
     )
 
@@ -960,7 +960,7 @@ async def wing_run_optimization(
         f"-spanwise_twists {' '.join(map(str, spanwise_twists))} "
         f"-lift_constraint={lift_constraint} "
         f"-max_opt_iters={max_opt_iters} "
-        f"-primal_func_std_tol={primal_func_std_tol} > log_cfd_simulation.txt 2>&1"
+        f"-primal_func_std_tol={primal_func_std_tol} > log_optimization.txt 2>&1"
     )
 
     try:
