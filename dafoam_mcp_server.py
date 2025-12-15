@@ -680,7 +680,7 @@ async def wing_generate_geometry(
         mean_chord = sum(spanwise_chords) / len(spanwise_chords)
         wing_span = spanwise_z[-1] - spanwise_z[0]
 
-        wing_view_geometry_mesh(mode="mesh", mean_chord=mean_chord, wing_span=wing_span)
+        wing_view_geometry_mesh(mode="geometry", mean_chord=mean_chord, wing_span=wing_span)
 
         return (
             "Wing geometry is successfully generated!\n\n"
@@ -1169,12 +1169,7 @@ def submit_to_hpc(bash_command: str, case_path: str) -> str:
     # Check if sbatch is available
     sbatch_available = False
     try:
-        result = subprocess.run(
-            ["which", "sbatch"],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
+        result = subprocess.run(["which", "sbatch"], capture_output=True, text=True, timeout=5)
         sbatch_available = result.returncode == 0
     except Exception:
         sbatch_available = False
@@ -1183,10 +1178,7 @@ def submit_to_hpc(bash_command: str, case_path: str) -> str:
         # Submit the job using sbatch myJob.sh
         try:
             result = subprocess.run(
-                ["bash", "-c", f"cd {case_path} && sbatch myJob.sh"],
-                capture_output=True,
-                text=True,
-                check=True
+                ["bash", "-c", f"cd {case_path} && sbatch myJob.sh"], capture_output=True, text=True, check=True
             )
             job_id = result.stdout.strip()
             return (
