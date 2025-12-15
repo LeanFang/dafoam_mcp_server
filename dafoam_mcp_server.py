@@ -808,7 +808,7 @@ async def wing_run_cfd_simulation(
     spanwise_x: List[float] = [0.0, 0.0],
     spanwise_z: List[float] = [0.0, 3.0],
     spanwise_twists: List[float] = [0.0, 0.0],
-    write_bash_command: bool = False,
+    run_on_hpc: bool = False,
 ):
     """
     Wing module:
@@ -843,13 +843,12 @@ async def wing_run_cfd_simulation(
         spanwise_twists:
             Twist angles for each spanwise section. NOTE: this value must be consistent with the
             spanwise_twists args from the wing_generate_geometry function!
-        write_bash_command:
-            Whether to write the bash_command to a run_cfd_simulation.sh script to start the cfd simulation later.
-            If this is True, the cfd simulation will not start. Users need to run the run_cfd_simulation.sh script    
-            to start the cfd simulation manually (e.g., on HPC).
+        run_on_hpc:
+            Whether to run on HPC. If True, writes myRun.sh script and attempts to submit
+            via sbatch. If sbatch is not available, one needs to manually upload the
+            wings folder to the HPC and submit myJob.sh. If False, runs locally in the background.
     Returns:
-        A message saying that the cfd simulation is running in the background
-        and the progress is written to log_cfd_simulation.txt
+        A message indicating how the cfd simulation was started and where progress is written
     """
 
     if mach_number < 0.6:
@@ -872,16 +871,8 @@ async def wing_run_cfd_simulation(
         f"-primal_func_std_tol={primal_func_std_tol} > log_cfd_simulation.txt 2>&1"
     )
 
-    if write_bash_command:
-        # Write the bash command to run_cfd_simulation.sh script
-        with open(f"{wing_path}/run_cfd_simulation.sh", "w") as f:
-            f.write("#!/bin/bash\n")
-            f.write(bash_command + "\n")
-        os.chmod(f"{wing_path}/run_cfd_simulation.sh", 0o755)  # Make the script executable
-        return (
-            f"Bash command written to {wing_path}/run_cfd_simulation.sh. "
-            "Run this script to start the cfd simulation."
-        )
+    if run_on_hpc:
+        return submit_to_hpc(bash_command, wing_path, "myRun.sh")
 
     try:
         # Run in non-blocking background mode
@@ -894,7 +885,7 @@ async def wing_run_cfd_simulation(
         return (
             "CFD simulation started in the background. "
             "Progress is being written to log_cfd_simulation.txt. "
-            "Use check_run_status to check if it's finished."
+            "Use mcp_check_run_status to check if it's finished."
         )
 
     except Exception as e:
@@ -915,7 +906,7 @@ async def wing_run_optimization(
     spanwise_x: List[float] = [0.0, 0.0],
     spanwise_z: List[float] = [0.0, 3.0],
     spanwise_twists: List[float] = [0.0, 0.0],
-    write_bash_command: bool = False,
+    run_on_hpc: bool = False,
 ):
     """
     Wing module:
@@ -954,13 +945,12 @@ async def wing_run_optimization(
             Maximum number of optimization iterations to perform.
         lift_constraint:
             The lift constraint value for the optimization.
-        write_bash_command:
-            Whether to write the bash_command to a run_optimization.sh script to start the optimization later.
-            If this is True, the optimization will not start. Users need to run the run_optimization.sh script
-            to start the optimization manually (e.g., on HPC).
+        run_on_hpc:
+            Whether to run on HPC. If True, writes myRun.sh script and attempts to submit
+            via sbatch. If sbatch is not available, one needs to manually upload the
+            wings folder to the HPC and submit myJob.sh. If False, runs locally in the background.
     Returns:
-        A message saying that the cfd simulation is running in the background
-        and the progress is written to log_cfd_simulation.txt
+        A message indicating how the optimization was started and where progress is written
     """
 
     if mach_number < 0.6:
@@ -985,16 +975,8 @@ async def wing_run_optimization(
         f"-primal_func_std_tol={primal_func_std_tol} > log_optimization.txt 2>&1"
     )
 
-    if write_bash_command:
-        # Write the bash command to run_optimization.sh script
-        with open(f"{wing_path}/run_optimization.sh", "w") as f:
-            f.write("#!/bin/bash\n")
-            f.write(bash_command + "\n")
-        os.chmod(f"{wing_path}/run_optimization.sh", 0o755)  # Make the script executable
-        return (
-            f"Bash command written to {wing_path}/run_optimization.sh. "
-            "Run this script to start the optimization."
-        )
+    if run_on_hpc:
+        return submit_to_hpc(bash_command, wing_path, "myRun.sh")
 
     try:
         # Run in non-blocking background mode
@@ -1007,7 +989,7 @@ async def wing_run_optimization(
         return (
             "Optimization started in the background. "
             "Progress is being written to log_optimization.txt. "
-            "Use check_run_status to check if it's finished."
+            "Use mcp_check_run_status to check if it's finished."
         )
 
     except Exception as e:
@@ -1166,6 +1148,64 @@ async def wing_view_flow_field(mean_chord: float = 1.0, wing_span: float = 3.0, 
 
 
 # helper functions
+def submit_to_hpc(bash_command: str, case_path: str) -> str:
+    """
+    Write bash command to script and submit to HPC if sbatch is available.
+
+    Args:
+        bash_command: The bash command to execute
+        case_path: Path to the case directory (airfoil_path or wing_path)
+
+    Returns:
+        Status message string
+    """
+    # Write the bash command to script
+    script_path = f"{case_path}/myRun.sh"
+    with open(script_path, "w") as f:
+        f.write("#!/bin/bash\n")
+        f.write(bash_command + "\n")
+    os.chmod(script_path, 0o755)  # Make the script executable
+
+    # Check if sbatch is available
+    sbatch_available = False
+    try:
+        result = subprocess.run(
+            ["which", "sbatch"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        sbatch_available = result.returncode == 0
+    except Exception:
+        sbatch_available = False
+
+    if sbatch_available:
+        # Submit the job using sbatch myJob.sh
+        try:
+            result = subprocess.run(
+                ["bash", "-c", f"cd {case_path} && sbatch myJob.sh"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            job_id = result.stdout.strip()
+            return (
+                f"Job submitted to HPC via sbatch. {job_id}\n"
+                f"Script written to: {script_path}\n"
+                "Progress will be written to the log file. "
+                "Use mcp_check_run_status to check if it's finished."
+            )
+        except subprocess.CalledProcessError as e:
+            return f"Error submitting job to HPC: {e.stderr}"
+        except Exception as e:
+            return f"Error submitting job to HPC: {str(e)}"
+    else:
+        return (
+            f"Script written to {script_path}. "
+            "sbatch command not available. Copy the script manually on HPC and run sbatch myJob.sh."
+        )
+
+
 def check_run_status(module: str = "airfoil"):
     """
     Check whether the cfd simulation or optimization finished
