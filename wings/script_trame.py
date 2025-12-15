@@ -19,13 +19,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-mesh_file", help="mesh file to load (.stl or .vtp)", type=str, default="VTK/wings_0/boundary.vtp")
 parser.add_argument("-focal_x", help="x for focal point", type=float, default=0.5)
 parser.add_argument("-focal_z", help="z for focal point", type=float, default=1.5)
+parser.add_argument("-port", help="port number for trame server", type=int, default=8002)
 args = parser.parse_args()
 
 mesh_file = args.mesh_file
 focal_x = args.focal_x
 focal_y = 0.0
 focal_z = args.focal_z
-port = 8002
+port = args.port
 
 # VTK Pipeline - detect file type and use appropriate reader
 file_ext = os.path.splitext(mesh_file)[1].lower()

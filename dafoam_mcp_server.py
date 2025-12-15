@@ -680,13 +680,13 @@ async def wing_generate_geometry(
         mean_chord = sum(spanwise_chords) / len(spanwise_chords)
         wing_span = spanwise_z[-1] - spanwise_z[0]
 
-        wing_view_geometry_mesh(mode="geometry", mean_chord=mean_chord, wing_span=wing_span)
+        trame_viewer = await wing_view_geometry_mesh(mode="geometry", mean_chord=mean_chord, wing_span=wing_span)
 
         return (
             "Wing geometry is successfully generated!\n\n"
             f"View the geometry at: http://localhost:{FILE_HTTP_PORT}/wing/{output_filename}.html\n"
             f"Combined PNG path: {wing_path}/plots/{output_filename}.png \n"
-            f"Interactive 3D viewer: http://localhost:8002"
+            f"Interactive 3D viewer: {trame_viewer}"
         )
 
     except subprocess.CalledProcessError as e:
@@ -779,7 +779,7 @@ async def wing_generate_mesh(
         create_image_html(wing_path, image_files, output_filename + ".html")
         combine_pngs(wing_path, image_files, output_filename + ".png")
 
-        wing_view_geometry_mesh(mode="mesh", mean_chord=mean_chord, wing_span=wing_span)
+        trame_viewer = await wing_view_geometry_mesh(mode="mesh", mean_chord=mean_chord, wing_span=wing_span)
 
         return (
             "Wing mesh is successfully generated!\n\n"
@@ -789,7 +789,7 @@ async def wing_generate_mesh(
             f"  - Mesh max skewness: {mesh_stats['max_skewness']:.2f}\n\n"
             f"View the mesh at: http://localhost:8001/wing/{output_filename}.html \n"
             f"Combined PNG path:{wing_path}/plots/{output_filename}.png \n"
-            f"Interactive 3D viewer: http://localhost:8002"
+            f"Interactive 3D viewer: {trame_viewer}"
         )
 
     except subprocess.CalledProcessError as e:
@@ -1027,10 +1027,10 @@ async def wing_view_geometry_mesh(mode: str = "geometry", mean_chord: float = 0.
     else:
         return "Error: mode must be either 'geometry' or 'mesh'."
 
-    # Start trame viewer on port 8002 for wing.
-    start_trame_viewer(f"{wing_path}", mesh_file, focal_x, focal_z)
+    # Start trame viewer with dynamic port allocation
+    result = start_trame_viewer(f"{wing_path}", mesh_file, focal_x, focal_z)
 
-    return "Trame viewer started at http://localhost:8002"
+    return result
 
 
 @mcp.tool()
@@ -1574,15 +1574,16 @@ def start_trame_viewer(case_path: str, mesh_file: str, focal_x: float = 1.0, foc
         focal_z:
             the focal point z coordinate
     """
+    global current_trame_port
 
-    # Kill any existing trame server on this port
-    kill_command = f"lsof -ti:8002 | xargs kill -9 2>/dev/null || true"
-    subprocess.run(["bash", "-c", kill_command], capture_output=True)
+    # Use current port and increment for next call
+    port = current_trame_port
+    current_trame_port += 1
 
     bash_command = (
         f"cd {case_path} && "
         f"nohup python script_trame.py "
-        f"-mesh_file={mesh_file} -focal_x={focal_x} -focal_z={focal_z} "
+        f"-mesh_file={mesh_file} -focal_x={focal_x} -focal_z={focal_z} -port={port} "
     )
 
     try:
@@ -1596,13 +1597,16 @@ def start_trame_viewer(case_path: str, mesh_file: str, focal_x: float = 1.0, foc
     except Exception as e:
         return f"Error starting trame viewer: {str(e)}"
 
-    return "Trame viewer started at http://localhost:8002"
+    return f"Trame viewer started at http://localhost:{port}"
 
 
 # HTTP server configuration for file serving
 FILE_HTTP_PORT = 8001  # Changed to 8001 to avoid conflict with MCP HTTP port
 http_server = None
 server_started = False
+
+# Trame viewer port tracking - increments with each call
+current_trame_port = 8002
 
 
 # Start HTTP server in daemon thread when module loads
