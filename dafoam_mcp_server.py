@@ -617,7 +617,8 @@ async def wing_generate_geometry(
             The number of FFD points in the spanwise direction
 
     Returns:
-        Status message and list of generated files. Must show the HTML link and path to combine PNG in bold to users.
+        Status message and list of generated files. Must show the HTML link, the interactive 3D view,
+        and path to combine PNG in bold to users.
     """
 
     # Build command line arguments
@@ -720,8 +721,8 @@ async def wing_generate_mesh(
             from the wing_generate_geometry function! wing_span = spanwise_z[-1] - spanwise_z[0]
 
     Returns:
-        Status message and list of generated files. Must show the link in bold to users.
-        Mesh statistics. Must show them to users. Keep only one digit for non-orthogonality and skewness
+        Status message and list of generated files. Must show the link to html, png, and interactive window in bold
+        to users. Must show Mesh statistics to users. Keep only one digit for non-orthogonality and skewness
     """
 
     # Build command line arguments
@@ -807,6 +808,7 @@ async def wing_run_cfd_simulation(
     spanwise_x: List[float] = [0.0, 0.0],
     spanwise_z: List[float] = [0.0, 3.0],
     spanwise_twists: List[float] = [0.0, 0.0],
+    write_bash_command: bool = False,
 ):
     """
     Wing module:
@@ -841,6 +843,10 @@ async def wing_run_cfd_simulation(
         spanwise_twists:
             Twist angles for each spanwise section. NOTE: this value must be consistent with the
             spanwise_twists args from the wing_generate_geometry function!
+        write_bash_command:
+            Whether to write the bash_command to a run_cfd_simulation.sh script to start the cfd simulation later.
+            If this is True, the cfd simulation will not start. Users need to run the run_cfd_simulation.sh script    
+            to start the cfd simulation manually (e.g., on HPC).
     Returns:
         A message saying that the cfd simulation is running in the background
         and the progress is written to log_cfd_simulation.txt
@@ -865,6 +871,17 @@ async def wing_run_cfd_simulation(
         f"-spanwise_twists {' '.join(map(str, spanwise_twists))} "
         f"-primal_func_std_tol={primal_func_std_tol} > log_cfd_simulation.txt 2>&1"
     )
+
+    if write_bash_command:
+        # Write the bash command to run_cfd_simulation.sh script
+        with open(f"{wing_path}/run_cfd_simulation.sh", "w") as f:
+            f.write("#!/bin/bash\n")
+            f.write(bash_command + "\n")
+        os.chmod(f"{wing_path}/run_cfd_simulation.sh", 0o755)  # Make the script executable
+        return (
+            f"Bash command written to {wing_path}/run_cfd_simulation.sh. "
+            "Run this script to start the cfd simulation."
+        )
 
     try:
         # Run in non-blocking background mode
@@ -898,6 +915,7 @@ async def wing_run_optimization(
     spanwise_x: List[float] = [0.0, 0.0],
     spanwise_z: List[float] = [0.0, 3.0],
     spanwise_twists: List[float] = [0.0, 0.0],
+    write_bash_command: bool = False,
 ):
     """
     Wing module:
@@ -936,6 +954,10 @@ async def wing_run_optimization(
             Maximum number of optimization iterations to perform.
         lift_constraint:
             The lift constraint value for the optimization.
+        write_bash_command:
+            Whether to write the bash_command to a run_optimization.sh script to start the optimization later.
+            If this is True, the optimization will not start. Users need to run the run_optimization.sh script
+            to start the optimization manually (e.g., on HPC).
     Returns:
         A message saying that the cfd simulation is running in the background
         and the progress is written to log_cfd_simulation.txt
@@ -962,6 +984,17 @@ async def wing_run_optimization(
         f"-max_opt_iters={max_opt_iters} "
         f"-primal_func_std_tol={primal_func_std_tol} > log_optimization.txt 2>&1"
     )
+
+    if write_bash_command:
+        # Write the bash command to run_optimization.sh script
+        with open(f"{wing_path}/run_optimization.sh", "w") as f:
+            f.write("#!/bin/bash\n")
+            f.write(bash_command + "\n")
+        os.chmod(f"{wing_path}/run_optimization.sh", 0o755)  # Make the script executable
+        return (
+            f"Bash command written to {wing_path}/run_optimization.sh. "
+            "Run this script to start the optimization."
+        )
 
     try:
         # Run in non-blocking background mode
