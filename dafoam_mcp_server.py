@@ -680,13 +680,13 @@ async def wing_generate_geometry(
         mean_chord = sum(spanwise_chords) / len(spanwise_chords)
         wing_span = spanwise_z[-1] - spanwise_z[0]
 
-        trame_url = wing_view_geometry_mesh(mode="mesh", mean_chord=mean_chord, wing_span=wing_span)
+        wing_view_geometry_mesh(mode="mesh", mean_chord=mean_chord, wing_span=wing_span)
 
         return (
             "Wing geometry is successfully generated!\n\n"
             f"View the geometry at: http://localhost:{FILE_HTTP_PORT}/wing/{output_filename}.html\n"
             f"Combined PNG path: {wing_path}/plots/{output_filename}.png \n"
-            f"Interactive 3D viewer: {trame_url}"
+            f"Interactive 3D viewer: http://localhost:8002"
         )
 
     except subprocess.CalledProcessError as e:
@@ -779,7 +779,7 @@ async def wing_generate_mesh(
         create_image_html(wing_path, image_files, output_filename + ".html")
         combine_pngs(wing_path, image_files, output_filename + ".png")
 
-        trame_url = wing_view_geometry_mesh(mode="mesh", mean_chord=mean_chord, wing_span=wing_span)
+        wing_view_geometry_mesh(mode="mesh", mean_chord=mean_chord, wing_span=wing_span)
 
         return (
             "Wing mesh is successfully generated!\n\n"
@@ -789,7 +789,7 @@ async def wing_generate_mesh(
             f"  - Mesh max skewness: {mesh_stats['max_skewness']:.2f}\n\n"
             f"View the mesh at: http://localhost:8001/wing/{output_filename}.html \n"
             f"Combined PNG path:{wing_path}/plots/{output_filename}.png \n"
-            f"Interactive 3D viewer: {trame_url}"
+            f"Interactive 3D viewer: http://localhost:8002"
         )
 
     except subprocess.CalledProcessError as e:
@@ -872,7 +872,7 @@ async def wing_run_cfd_simulation(
     )
 
     if run_on_hpc:
-        return submit_to_hpc(bash_command, wing_path, "myRun.sh")
+        return submit_to_hpc(bash_command, wing_path)
 
     try:
         # Run in non-blocking background mode
@@ -976,7 +976,7 @@ async def wing_run_optimization(
     )
 
     if run_on_hpc:
-        return submit_to_hpc(bash_command, wing_path, "myRun.sh")
+        return submit_to_hpc(bash_command, wing_path)
 
     try:
         # Run in non-blocking background mode
@@ -1028,9 +1028,9 @@ async def wing_view_geometry_mesh(mode: str = "geometry", mean_chord: float = 0.
         return "Error: mode must be either 'geometry' or 'mesh'."
 
     # Start trame viewer on port 8002 for wing.
-    trame_url = start_trame_viewer(f"{wing_path}", mesh_file, focal_x, focal_z)
+    start_trame_viewer(f"{wing_path}", mesh_file, focal_x, focal_z)
 
-    return f"{trame_url}"
+    return "Trame viewer started at http://localhost:8002"
 
 
 @mcp.tool()
@@ -1583,10 +1583,8 @@ def start_trame_viewer(case_path: str, mesh_file: str, focal_x: float = 1.0, foc
             the focal point z coordinate
     """
 
-    port = 8002
-
     # Kill any existing trame server on this port
-    kill_command = f"lsof -ti:{port} | xargs kill -9 2>/dev/null || true"
+    kill_command = f"lsof -ti:8002 | xargs kill -9 2>/dev/null || true"
     subprocess.run(["bash", "-c", kill_command], capture_output=True)
 
     bash_command = (
@@ -1606,7 +1604,7 @@ def start_trame_viewer(case_path: str, mesh_file: str, focal_x: float = 1.0, foc
     except Exception as e:
         return f"Error starting trame viewer: {str(e)}"
 
-    return f"http://localhost:{port}"
+    return "Trame viewer started at http://localhost:8002"
 
 
 # HTTP server configuration for file serving
