@@ -12,6 +12,7 @@ import urllib.request
 import os
 import glob
 from PIL import Image
+import atexit
 
 # =============================================================================
 # USER CONFIGURATION
@@ -1574,16 +1575,20 @@ def start_trame_viewer(case_path: str, mesh_file: str, focal_x: float = 1.0, foc
         focal_z:
             the focal point z coordinate
     """
-    global current_trame_port
-
     # Use current port and increment for next call
-    port = current_trame_port
-    current_trame_port += 1
+    port = 8002
+
+    # First kill any existing trame processes
+    try:
+        subprocess.run(["pkill", "-f", "script_trame.py"], capture_output=True, timeout=2)
+        time.sleep(0.5)  # Wait for processes to terminate
+    except Exception:
+        pass  # Ignore errors if no process found
 
     bash_command = (
         f"cd {case_path} && "
-        f"nohup python script_trame.py "
-        f"-mesh_file={mesh_file} -focal_x={focal_x} -focal_z={focal_z} -port={port} "
+        f"python script_trame.py "
+        f"-mesh_file={mesh_file} -focal_x={focal_x} -focal_z={focal_z} "
     )
 
     try:
@@ -1600,14 +1605,23 @@ def start_trame_viewer(case_path: str, mesh_file: str, focal_x: float = 1.0, foc
     return f"Trame viewer started at http://localhost:{port}"
 
 
+# Cleanup function to kill trame processes on exit
+def cleanup_on_exit():
+    """Kill all trame viewer processes when MCP server exits"""
+    try:
+        subprocess.run(["pkill", "-f", "script_trame.py"], capture_output=True, timeout=2)
+    except Exception:
+        pass  # Ignore errors
+
+
+# Register cleanup function to run on exit
+atexit.register(cleanup_on_exit)
+
+
 # HTTP server configuration for file serving
 FILE_HTTP_PORT = 8001  # Changed to 8001 to avoid conflict with MCP HTTP port
 http_server = None
 server_started = False
-
-# Trame viewer port tracking - increments with each call
-current_trame_port = 8002
-
 
 # Start HTTP server in daemon thread when module loads
 server_thread = threading.Thread(target=start_http_server, daemon=True)
