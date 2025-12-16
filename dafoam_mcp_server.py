@@ -634,16 +634,31 @@ async def wing_generate_geometry(
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
         f"-spanwise_twists {' '.join(map(str, spanwise_twists))} && "
         "pvpython --no-mpi script_iges2stl.py && "
-        "head -n 1 wing0.stl > wing.stl && "  # combine all wing sections into one stl file
-        "for f in wing0.stl wing1.stl wing2.stl wing3.stl wing4.stl; do "
+        # Rename wing0.stl to wing_upper.stl and fix solid name
+        "mv wing0.stl wing_upper.stl && "
+        "sed -i '1s/^solid.*/solid wing_upper/' wing_upper.stl && "
+        # Rename wing1.stl to wing_lower.stl and fix solid name
+        "mv wing1.stl wing_lower.stl && "
+        "sed -i '1s/^solid.*/solid wing_lower/' wing_lower.stl && "
+        # Rename wing2.stl to wing_te.stl and fix solid name
+        "mv wing2.stl wing_te.stl && "
+        "sed -i '1s/^solid.*/solid wing_te/' wing_te.stl && "
+        # Combine wing3 and wing4 into wing_tip.stl (one solid) and fix solid name
+        "head -n 1 wing3.stl > wing_tip.stl && "
+        "sed '1d;$d' wing3.stl >> wing_tip.stl && "
+        "sed '1d;$d' wing4.stl >> wing_tip.stl && "
+        "echo 'endsolid' >> wing_tip.stl && "
+        "rm -rf wing3.stl wing4.stl && "
+        "sed -i '1s/^solid.*/solid wing_tip/' wing_tip.stl && "
+        # Create wing_all_surfaces.stl with four separate solids
+        "cat wing_upper.stl wing_lower.stl wing_te.stl wing_tip.stl > wing_all_surfaces.stl && "
+        # Create wing.stl with one solid (combine all sections)
+        "head -n 1 wing_upper.stl > wing.stl && "
+        "for f in wing_upper.stl wing_lower.stl wing_te.stl wing_tip.stl; do "
         "sed '1d;$d' $f >> wing.stl; done && "
         "echo 'endsolid' >> wing.stl && "
-        "mv wing.stl constant/triSurface/wing.stl && "
-        "mv wing0.stl constant/triSurface/wing_upper.stl && "
-        "mv wing1.stl constant/triSurface/wing_lower.stl && "
-        "mv wing2.stl constant/triSurface/wing_te.stl && "
-        "cat wing3.stl wing4.stl > constant/triSurface/wing_tip.stl && "
-        "rm -rf *.stl && "
+        # Move all files to constant/triSurface/
+        "mv *.stl constant/triSurface/ && "
         f"pvpython --no-mpi script_plot_geometry.py "
         f"-spanwise_z {' '.join(map(str, spanwise_z))} "
         f"-spanwise_chords {' '.join(map(str, spanwise_chords))} && "
@@ -696,18 +711,23 @@ async def wing_generate_geometry(
 
 @mcp.tool()
 async def wing_generate_mesh(
+    mesh_tool: str = "cfMesh",
     max_cell_size: float = 1.0,
     mesh_refinement_level: int = 5,
     n_boundary_layers: int = 10,
     mean_chord: float = 1.0,
     wing_span: float = 3.0,
+    leading_edge_root: List[float] = [0.0, 0.0, 0.0],
+    leading_edge_tip: List[float] = [0.0, 0.0, 3.0],
 ):
     """
     Wing module:
-        Generate wing mesh using cfMesh. Here we assume x is the flow direction, y is the airfoil vertical direction,
-        and z is the wing spanwise direction.
+        Generate wing mesh using cfMesh or snappyHexMesh. Here we assume x is the flow direction, y is
+        the airfoil vertical direction, and z is the wing spanwise direction.
 
     Args:
+        mesh_tool:
+            The mesh tool to use. Options are "cfMesh" and "snappyHexMesh
         max_cell_size:
             The maximial cell size in the far field
         mesh_refinement_level:
@@ -720,6 +740,16 @@ async def wing_generate_mesh(
         wing_span:
             The span for the wing. NOTE: this value must be consistent with the spanwise_z args
             from the wing_generate_geometry function! wing_span = spanwise_z[-1] - spanwise_z[0]
+        leading_edge_root:
+            The coordinates for the leading edge at the wing root. It will be calculated based on spanwise_x,
+            spanwise_y, and spanwise_z from the wing_generate_geometry function. Here the size of spanwise_x
+            is the number of spanwise sections, if there are more than two sections prescribed, we will use
+            the first one (root section) and the last one (tip section).
+        leading_edge_tip:
+            The coordinates for the leading edge at the wing tip. It will be calculated based on spanwise_x,
+            spanwise_y, and spanwise_z from the wing_generate_geometry function. Here the size of spanwise_x
+            is the number of spanwise sections, if there are more than two sections prescribed, we will use
+            the first one (root section) and the last one (tip section).
 
     Returns:
         Status message and list of generated files. Must show the link to html, png, and interactive window in bold
@@ -727,34 +757,65 @@ async def wing_generate_mesh(
     """
 
     # Build command line arguments
-    Lx = mean_chord * 30.0
-    LxNeg = -Lx
-    Nx = int(Lx / max_cell_size)
-    Nz = int(Nx / 2)
-    surfaceLevel = mesh_refinement_level
-    lineLevel = surfaceLevel + 2
-    prismLayer = n_boundary_layers
-    bash_command = (
-        f"cd {wing_path} && "
-        f"sed -i 's/^Lx .*/Lx {Lx};/' system/blockMeshDict && "
-        f"sed -i 's/^LxNeg.*/LxNeg {LxNeg};/' system/blockMeshDict && "
-        f"sed -i 's/^Nx.*/Nx {Nx};/' system/blockMeshDict && "
-        f"sed -i 's/^Nz.*/Nz {Nz};/' system/blockMeshDict && "
-        f"sed -i 's/^surfaceLevel.*/surfaceLevel {surfaceLevel};/' system/snappyHexMeshDict && "
-        f"sed -i 's/^lineLevel.*/lineLevel {lineLevel};/' system/snappyHexMeshDict && "
-        f"sed -i 's/^prismLayer.*/prismLayer {prismLayer};/' system/snappyHexMeshDict && "
-        "blockMesh > log_mesh.txt && "
-        "surfaceFeatureExtract >> log_mesh.txt && "
-        "snappyHexMesh -overwrite >> log_mesh.txt && "
-        "createPatch -overwrite >> log_mesh.txt && "
-        "renumberMesh -overwrite >> log_mesh.txt && "
-        "checkMesh >> log_mesh.txt && "
-        'foamToVTK -patches "(wing sym)" -one-boundary && '
-        "cp -r 0_orig 0 && "
-        f"pvpython --no-mpi script_plot_mesh.py "
-        f"-mean_chord={mean_chord} "
-        f"-wing_span={wing_span} "
-    )
+    if mesh_tool == "cfMesh":
+        Lx = mean_chord * 30.0
+        le_root = leading_edge_root
+        le_tip = leading_edge_tip
+        refinementLevel = mesh_refinement_level
+        refineP1 = mesh_refinement_level + 1
+        refineP2 = mesh_refinement_level + 2
+        bash_command = (
+            f". /home/dafoamuser/dafoam/loadDAFoam.sh && "
+            f"cd {wing_path} && "
+            f"sed -i 's/^maxCellSize.*/maxCellSize {max_cell_size};/' system/meshDict && "
+            f"sed -i 's/^refinementLevel.*/refinementLevel {refinementLevel};/' system/meshDict && "
+            f"sed -i 's/^refineP1.*/refineP1 {refineP1};/' system/meshDict && "
+            f"sed -i 's/^refineP2.*/refineP2 {refineP2};/' system/meshDict && "
+            f"sed -i 's/^nBoundaryLayers.*/nBoundaryLayers {n_boundary_layers};/' system/meshDict && "
+            f"sed -i 's/^le_p0.*/le_p0 ({le_root[0]} {le_root[1]} {le_root[2]});/' system/meshDict && "
+            f"sed -i 's/^le_p1.*/le_p1 ({le_tip[0]} {le_tip[1]} {le_tip[2]});/' system/meshDict && "
+            "surfaceGenerateBoundingBox constant/triSurface/wing_all_surfaces.stl constant/triSurface/domain.stl "
+            f"{Lx} {Lx} {Lx} {Lx} 0 {Lx} > log_mesh.txt && "
+            f"cartesianMesh >> log_mesh.txt && "
+            f"renumberMesh -overwrite >> log_mesh.txt && "
+            f"checkMesh >> log_mesh.txt && "
+            'foamToVTK -patches "(wing sym)" -one-boundary && '
+            f"cp -r 0_orig 0 && "
+            f"pvpython --no-mpi script_plot_mesh.py "
+            f"-mean_chord={mean_chord} "
+            f"-wing_span={wing_span} "
+        )
+    elif mesh_tool == "snappyHexMesh":
+        Lx = mean_chord * 30.0
+        LxNeg = -Lx
+        Nx = int(Lx / max_cell_size)
+        Nz = int(Nx / 2)
+        surfaceLevel = mesh_refinement_level
+        lineLevel = surfaceLevel + 2
+        prismLayer = n_boundary_layers
+        bash_command = (
+            f"cd {wing_path} && "
+            f"sed -i 's/^Lx .*/Lx {Lx};/' system/blockMeshDict && "
+            f"sed -i 's/^LxNeg.*/LxNeg {LxNeg};/' system/blockMeshDict && "
+            f"sed -i 's/^Nx.*/Nx {Nx};/' system/blockMeshDict && "
+            f"sed -i 's/^Nz.*/Nz {Nz};/' system/blockMeshDict && "
+            f"sed -i 's/^[[:space:]]*surfaceLevel.*/    surfaceLevel {surfaceLevel};/' system/snappyHexMeshDict && "
+            f"sed -i 's/^[[:space:]]*lineLevel.*/    lineLevel {lineLevel};/' system/snappyHexMeshDict && "
+            f"sed -i 's/^[[:space:]]*prismLayer.*/    prismLayer {prismLayer};/' system/snappyHexMeshDict && "
+            "blockMesh > log_mesh.txt && "
+            "surfaceFeatureExtract >> log_mesh.txt && "
+            "snappyHexMesh -overwrite >> log_mesh.txt && "
+            "createPatch -overwrite >> log_mesh.txt && "
+            "renumberMesh -overwrite >> log_mesh.txt && "
+            "checkMesh >> log_mesh.txt && "
+            'foamToVTK -patches "(wing sym)" -one-boundary && '
+            "cp -r 0_orig 0 && "
+            f"pvpython --no-mpi script_plot_mesh.py "
+            f"-mean_chord={mean_chord} "
+            f"-wing_span={wing_span} "
+        )
+    else:
+        return f"Error: mesh_tool {mesh_tool} not recognized. Options are 'cfMesh' and 'snappyHexMesh'."
 
     try:
         # run in non-blocking mode
