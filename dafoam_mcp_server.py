@@ -743,7 +743,7 @@ async def wing_generate_mesh(
         f"sed -i 's/^surfaceLevel.*/surfaceLevel {surfaceLevel};/' system/snappyHexMeshDict && "
         f"sed -i 's/^lineLevel.*/lineLevel {lineLevel};/' system/snappyHexMeshDict && "
         f"sed -i 's/^prismLayer.*/prismLayer {prismLayer};/' system/snappyHexMeshDict && "
-        "blockMesh >> log_mesh.txt && "
+        "blockMesh > log_mesh.txt && "
         "surfaceFeatureExtract >> log_mesh.txt && "
         "snappyHexMesh -overwrite >> log_mesh.txt && "
         "createPatch -overwrite >> log_mesh.txt && "
