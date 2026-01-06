@@ -201,7 +201,6 @@ async def airfoil_run_cfd_simulation(
 
     bash_command = (
         f"cd {airfoil_path} && "
-        #f"rm -rf .dafoam_run_finished && "
         f"./Partialclean.sh && "
         f"mpirun -np {cpu_cores} python script_run_dafoam.py "
         f"-angle_of_attack={angle_of_attack} "
@@ -271,7 +270,6 @@ async def airfoil_run_optimization(
 
     bash_command = (
         f"cd {airfoil_path} && "
-        #f"rm -rf .dafoam_run_finished && "
         f"./Partialclean.sh && "
         f"mpirun -np {cpu_cores} python script_run_dafoam.py -task=run_driver "
         f"-angle_of_attack={angle_of_attack} -mach_number={mach_number} "
